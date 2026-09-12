@@ -22,7 +22,6 @@ export const LOGIC_BURST_ID = "logic-burst";
 export const PATTERN_RUSH_ID = "pattern-rush";
 export const MICRO_CHESS_ID = "micro-chess";
 
-/** Paste your GitHub release APK URL after the first build. */
 export const STUDYGRIND_APK_DOWNLOAD_URL = "https://github.com/randomcoderwedontknow/studyygrind/releases/tag/studygrind";
 
 export const UNLOCK_IDS = {

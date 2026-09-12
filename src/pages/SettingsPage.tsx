@@ -123,11 +123,7 @@ export function SettingsPage() {
   };
 
   const inviteFriends = async () => {
-    const url = STUDYGRIND_APK_DOWNLOAD_URL.trim();
-    if (!url) {
-      setToast("Link coming soon");
-      return;
-    }
+    const url = STUDYGRIND_APK_DOWNLOAD_URL;
     const text = `Join me on StudyGrind — focus, tasks, flashcards and study streaks.\nDownload: ${url}`;
     try {
       if (isNative) {
