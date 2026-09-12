@@ -10,17 +10,17 @@ import java.util.Calendar;
 import java.util.TimeZone;
 
 /**
- * Native backup scheduler for daily 5:00 PM America/New_York reminders.
+ * Native backup scheduler for daily reminders in Europe/London.
  * Used after BOOT_COMPLETED until the web layer reschedules via Capacitor.
  */
 public final class DailyReminderScheduler {
 
     public static final int ALARM_REQUEST_CODE = 9001;
-    private static final TimeZone TZ = TimeZone.getTimeZone("America/New_York");
+    private static final TimeZone TZ = TimeZone.getTimeZone("Europe/London");
 
     private DailyReminderScheduler() {}
 
-    /** Schedule the next one-shot alarm at 5 PM Eastern. */
+    /** Schedule the next one-shot alarm at the user's chosen London time. */
     public static void scheduleNextAlarm(Context context) {
         if (!NotificationPrefsHelper.isEnabled(context)) return;
 
@@ -28,7 +28,7 @@ public final class DailyReminderScheduler {
         if (am == null) return;
 
         PendingIntent pi = alarmPendingIntent(context);
-        long triggerAt = nextFivePmEasternMillis();
+        long triggerAt = nextReminderMillis(context);
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -56,11 +56,13 @@ public final class DailyReminderScheduler {
         return PendingIntent.getBroadcast(context, ALARM_REQUEST_CODE, intent, flags);
     }
 
-    /** Millis for the next 17:00 in America/New_York (today or tomorrow). */
-    static long nextFivePmEasternMillis() {
+    /** Millis for the next reminder at stored hour/minute in Europe/London (today or tomorrow). */
+    static long nextReminderMillis(Context context) {
+        int hour = NotificationPrefsHelper.getReminderHour(context);
+        int minute = NotificationPrefsHelper.getReminderMinute(context);
         Calendar cal = Calendar.getInstance(TZ);
-        cal.set(Calendar.HOUR_OF_DAY, 17);
-        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.HOUR_OF_DAY, hour);
+        cal.set(Calendar.MINUTE, minute);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
         if (cal.getTimeInMillis() <= System.currentTimeMillis()) {

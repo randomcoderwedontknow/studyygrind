@@ -48,7 +48,6 @@ import { pickDailyQuest, questById, isDailyQuestComplete } from "../data/daily-q
 import { todayKey } from "../lib/dates";
 import type { CelebrationEvent } from "../components/rewards/CelebrationModal";
 import {
-  MENTOR_HUB_PRICE,
   FOCUS_LAB_PRICE,
   COLOUR_MAKER_PRICE,
 } from "../data/constants";
@@ -611,17 +610,6 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
         if (opts?.closeMenu) setMenuOpen(false);
         return;
       }
-      if (
-        next === "mentor" &&
-        !hasUnlock(UNLOCK_IDS.mentorHub) &&
-        !u?.honoraryAccess &&
-        u?.role !== "owner"
-      ) {
-        setToast(`Unlock Mentor Hub in the shop (${MENTOR_HUB_PRICE.toLocaleString()} pts).`);
-        setTab("shop");
-        if (opts?.closeMenu) setMenuOpen(false);
-        return;
-      }
       if (next === "ownerSettings" && user?.role !== "owner") {
         setToast("Owner only.");
         if (opts?.closeMenu) setMenuOpen(false);
@@ -763,7 +751,6 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
       showReward(`${name} unlocked!`, useCredit ? "Used trophy reward credit" : undefined, undefined);
       if (unlockKey === UNLOCK_IDS.focusLab) setToast("Focus Lab unlocked — open it from the menu.");
       else if (unlockKey === UNLOCK_IDS.colourMaker) setToast("Theme Studio unlocked — open it from the menu.");
-      else if (unlockKey === UNLOCK_IDS.mentorHub) setToast("Mentor Hub unlocked — open it from the menu.");
       else if (useCredit) setToast(`${name} unlocked with a free trophy credit!`);
       else setToast(`${name} unlocked for ${final} pts.`);
       return true;
@@ -1125,6 +1112,8 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
       ownedThemes: Array.from(new Set(["green", draft.starterTheme])) as ThemeId[],
       notifications: draft.notificationPref,
       notificationPref: draft.notificationPref,
+      reminderHour: draft.reminderHour ?? 17,
+      reminderMinute: draft.reminderMinute ?? 0,
     };
     setStore((p) => ({ ...p, current: auth.email, users: { ...p.users, [auth.email]: created } }));
     setToast("Account created.");
@@ -1184,17 +1173,22 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
         await svc.requestPermission();
         localStorage.setItem(key, "1");
       }
-      await syncNotificationSchedule(user.notifications);
+      await syncNotificationSchedule(
+        user.notifications,
+        user.reminderHour ?? 17,
+        user.reminderMinute ?? 0,
+      );
     })();
     const sub = CapApp.addListener("appStateChange", ({ isActive }) => {
-      if (isActive && userRef.current?.notifications) {
-        void syncNotificationSchedule(true);
+      const u = userRef.current;
+      if (isActive && u?.notifications) {
+        void syncNotificationSchedule(true, u.reminderHour ?? 17, u.reminderMinute ?? 0);
       }
     });
     return () => {
       void sub.then((h) => h.remove());
     };
-  }, [user?.email, user?.notifications]);
+  }, [user?.email, user?.notifications, user?.reminderHour, user?.reminderMinute]);
 
   // Tap daily reminder → open focus timer (Capacitor + native backup notifications).
   useEffect(() => {

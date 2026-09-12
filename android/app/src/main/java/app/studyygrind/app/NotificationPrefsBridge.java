@@ -15,13 +15,11 @@ public class NotificationPrefsBridge extends Plugin {
     @PluginMethod
     public void setNotificationsEnabled(PluginCall call) {
         Boolean enabled = call.getBoolean("enabled", false);
+        Integer hour = call.getInt("hour", 17);
+        Integer minute = call.getInt("minute", 0);
         NotificationPrefsHelper.setEnabled(getContext(), enabled);
-        if (enabled) {
-            // While app is running, Capacitor owns scheduling — cancel native backup to avoid duplicates.
-            DailyReminderScheduler.cancel(getContext());
-        } else {
-            DailyReminderScheduler.cancel(getContext());
-        }
+        NotificationPrefsHelper.setReminderTime(getContext(), hour, minute);
+        DailyReminderScheduler.cancel(getContext());
         call.resolve();
     }
 

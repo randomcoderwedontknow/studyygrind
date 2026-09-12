@@ -3,7 +3,6 @@ import {
   COLOUR_MAKER_PRICE,
   CUSTOM_TITLE_UNLOCK_PRICE,
   FOCUS_LAB_PRICE,
-  MENTOR_HUB_PRICE,
   UNLOCK_IDS,
 } from "./constants";
 import { PURCHASABLE_TITLES } from "./titles";
@@ -32,14 +31,6 @@ export type ShopItem = {
 };
 
 export const SHOP_HUB_ITEMS: ShopItem[] = [
-  {
-    id: UNLOCK_IDS.mentorHub,
-    name: "Mentor Hub",
-    description: "Pin mentorship messages and submit community challenges.",
-    price: MENTOR_HUB_PRICE,
-    category: "hubs",
-    unlockKey: UNLOCK_IDS.mentorHub,
-  },
   {
     id: UNLOCK_IDS.focusLab,
     name: "Focus Lab",

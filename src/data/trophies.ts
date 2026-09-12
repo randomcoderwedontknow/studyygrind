@@ -447,14 +447,6 @@ const uniqueTrophies: TrophyDef[] = [
     check: (u) => Boolean(u.unlocks["focus-lab"]),
   },
   {
-    id: "unique-mentor-unlocked",
-    name: "Mentor's Apprentice",
-    description: "Unlock the Mentor Hub from the shop.",
-    category: "unique",
-    tier: "silver",
-    check: (u) => Boolean(u.unlocks["mentor-hub"]),
-  },
-  {
     id: "unique-theme-studio",
     name: "Colour Curator",
     description: "Unlock the Colour & Gradient Studio.",

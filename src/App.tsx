@@ -13,7 +13,6 @@ import { NotesPage } from "./pages/NotesPage";
 import { ShopPage } from "./pages/ShopPage";
 import { GamesPage } from "./pages/GamesPage";
 import { HonourPage } from "./pages/HonourPage";
-import { MentorPage } from "./pages/MentorPage";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -70,9 +69,6 @@ function AppRoutes() {
       break;
     case "honour":
       page = <HonourPage />;
-      break;
-    case "mentor":
-      page = locked ? <ShopPage /> : <MentorPage />;
       break;
     case "analytics":
       page = <AnalyticsPage />;

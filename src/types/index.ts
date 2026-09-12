@@ -9,7 +9,6 @@ export type Tab =
   | "settings"
   | "games"
   | "honour"
-  | "mentor"
   | "analytics"
   | "focusLab"
   | "themeStudio"
@@ -178,6 +177,8 @@ export type OnboardingProfile = {
   studyStyle: string;
   starterTheme: string;
   notificationPref: boolean;
+  reminderHour: number;
+  reminderMinute: number;
 };
 
 export type FocusLabStats = {
@@ -310,6 +311,8 @@ export type UserData = {
   lastActiveDate: string;
   ownedRotatingThemeIds: string[];
   notificationPref: boolean;
+  reminderHour: number;
+  reminderMinute: number;
   mainGoal: string;
   studyStyle: string;
   warningCount: number;

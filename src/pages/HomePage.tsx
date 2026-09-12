@@ -352,7 +352,7 @@ export function HomePage() {
       >
         <p className="soft">Choose tabs to block during an active session:</p>
         <div className="chip-group">
-          {(["shop", "cards", "games", "notes", "mentor", "analytics"] as Tab[]).map((p) => (
+          {(["shop", "cards", "games", "notes", "analytics"] as Tab[]).map((p) => (
             <button
               key={p}
               type="button"

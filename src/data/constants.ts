@@ -1,5 +1,5 @@
 export const STORE_KEY = "studygrind_v2";
-export const DATA_VERSION = 7;
+export const DATA_VERSION = 8;
 export const WEEKLY_TITLE_THRESHOLDS = [60, 180, 300, 600, 1200] as const;
 export const DAILY_SHOP_THEME_COUNT = 10;
 export const SESSION_LOG_CAP = 200;
@@ -21,6 +21,9 @@ export const MEMORY_SPRINT_ID = "memory-sprint";
 export const LOGIC_BURST_ID = "logic-burst";
 export const PATTERN_RUSH_ID = "pattern-rush";
 export const MICRO_CHESS_ID = "micro-chess";
+
+/** Paste your GitHub release APK URL after the first build. */
+export const STUDYGRIND_APK_DOWNLOAD_URL = "https://github.com/randomcoderwedontknow/studyygrind/releases/tag/studygrind";
 
 export const UNLOCK_IDS = {
   mentorHub: "mentor-hub",

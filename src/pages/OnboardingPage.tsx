@@ -3,6 +3,7 @@ import { themes } from "../data/themes";
 import { useStudyGrind } from "../context/StudyGrindContext";
 import type { OnboardingProfile, ThemeId } from "../types";
 import { PressableButton } from "../components/ui/PressableButton";
+import { REMINDER_HOUR_OPTIONS } from "../lib/reminder-time";
 
 const GOALS = ["Stay consistent", "Exam prep", "Deep work", "Build habits", "Finish projects"];
 const STYLES = ["Balanced", "Short bursts", "Long sessions", "Night owl", "Morning focus"];
@@ -160,8 +161,8 @@ export function OnboardingPage() {
         {step === 4 && (
           <>
             <h1>Reminders</h1>
-            <p>On the Android app, StudyGrind can send a daily study reminder at 5:00 PM Eastern.</p>
-            <p className="soft">The web version stores your preference only — no browser push here.</p>
+            <p>Optional daily study reminders on the Android app — off by default.</p>
+            <p className="soft">Pick an hour in London time (GMT/BST). The web version stores your preference only.</p>
             <div className="list">
               <div className="list-row">
                 <span>Enable reminders on Android</span>
@@ -174,6 +175,26 @@ export function OnboardingPage() {
                   <span />
                 </button>
               </div>
+              {draft.notificationPref && (
+                <div className="list-row">
+                  <div>
+                    <span>Reminder time</span>
+                    <small className="soft block">London time (GMT/BST)</small>
+                  </div>
+                  <select
+                    className="input compact"
+                    aria-label="Reminder hour"
+                    value={draft.reminderHour ?? 17}
+                    onChange={(e) => saveDraft({ reminderHour: Number(e.target.value), reminderMinute: 0 })}
+                  >
+                    {REMINDER_HOUR_OPTIONS.map(({ hour, label }) => (
+                      <option key={hour} value={hour}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </>
         )}

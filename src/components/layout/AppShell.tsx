@@ -44,7 +44,6 @@ const TAB_ICONS: Partial<Record<Tab, React.ReactNode>> = {
   shop: <ShoppingBag size={18} />,
   games: <Sparkles size={18} />,
   honour: <Crown size={18} />,
-  mentor: <Crown size={18} />,
   analytics: <BarChart3 size={18} />,
   profile: <User size={18} />,
   achievements: <Trophy size={18} />,
@@ -63,7 +62,6 @@ const MAIN_TABS: Tab[] = [
   "games",
   "focusLab",
   "honour",
-  "mentor",
   "analytics",
   "achievements",
   "profile",
@@ -128,7 +126,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isTabLocked = (t: Tab) => {
     if (t === "focusLab") return !hasUnlock(UNLOCK_IDS.focusLab);
     if (t === "themeStudio") return !hasUnlock(UNLOCK_IDS.colourMaker);
-    if (t === "mentor") return !hasUnlock(UNLOCK_IDS.mentorHub) && !user.honoraryAccess && user.role !== "owner";
     return false;
   };
 

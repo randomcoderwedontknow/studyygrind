@@ -1,14 +1,14 @@
 {
   "name": "studygrind",
   "private": true,
-  "version": "11.3.2",
+  "version": "11.3.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "icons": "node scripts/prepare-icon.mjs && npx @capacitor/assets generate --android --assetPath assets --iconBackgroundColor \"#0f2a1a\" --splashBackgroundColor \"#f4f7f5\" --splashBackgroundColorDark \"#0c1411\"",
-    "android:sync": "npm run build && cap sync android",
+    "icons": "node scripts/prepare-icon.mjs && node scripts/generate-android-icons.mjs",
+    "android:sync": "npm run icons && npm run build && cap sync android",
     "android:open": "cap open android",
     "android:run": "npm run build && cap run android",
     "android:build": "npm run android:sync && cap open android"
@@ -19,6 +19,7 @@
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/local-notifications": "^8.2.0",
     "@capacitor/preferences": "^8.0.1",
+    "@capacitor/share": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
     "@fontsource-variable/inter": "^5.3.0",

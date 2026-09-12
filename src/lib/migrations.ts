@@ -15,7 +15,9 @@ const DEFAULT_ONBOARDING_DRAFT: OnboardingProfile = {
   mainGoal: "Stay consistent",
   studyStyle: "Balanced",
   starterTheme: "green",
-  notificationPref: true,
+  notificationPref: false,
+  reminderHour: 17,
+  reminderMinute: 0,
 };
 
 function migrateDeckCard(c: Partial<DeckCard>): DeckCard {
@@ -114,7 +116,7 @@ export function defaultUser(email: string, password: string, username: string): 
     ownedCustomThemes: [],
     savedCustomThemes: [],
     darkMode: true,
-    notifications: true,
+    notifications: false,
     soundEffects: true,
     discount: 0,
     focusLockOn: false,
@@ -160,7 +162,9 @@ export function defaultUser(email: string, password: string, username: string): 
     loginStreak: 0,
     lastActiveDate: "",
     ownedRotatingThemeIds: [],
-    notificationPref: true,
+    notificationPref: false,
+    reminderHour: 17,
+    reminderMinute: 0,
     mainGoal: "Stay consistent",
     studyStyle: "Balanced",
     warningCount: 0,
@@ -296,7 +300,7 @@ export function migrateUser(k: string, v: Partial<UserData>): UserData {
 
   const migratedLockedTabs = ((v.lockedTabs ?? []) as string[])
     .map((t) => (t === "progress" ? "profile" : t === "ownerSecret" ? "ownerSettings" : t))
-    .filter((t) => t !== "progress" && t !== "ownerSecret") as Tab[];
+    .filter((t) => t !== "progress" && t !== "ownerSecret" && t !== "mentor") as Tab[];
 
   const base = defaultUser(k, v.password ?? "", v.username ?? k);
   const notes = migrateNotes(v.notes, noteFolders);
@@ -345,6 +349,8 @@ export function migrateUser(k: string, v: Partial<UserData>): UserData {
     loginStreak: v.loginStreak ?? 0,
     ownedRotatingThemeIds: v.ownedRotatingThemeIds ?? [],
     notificationPref: v.notificationPref ?? v.notifications ?? true,
+    reminderHour: v.reminderHour ?? 17,
+    reminderMinute: v.reminderMinute ?? 0,
     mainGoal: v.mainGoal ?? "Stay consistent",
     studyStyle: v.studyStyle ?? "Balanced",
     focusLabStats: v.focusLabStats ?? base.focusLabStats,
@@ -474,7 +480,6 @@ export const TAB_META: Record<Tab, { label: string; description: string }> = {
   shop: { label: "Shop", description: "Optional themes and extras." },
   games: { label: "Break Activities", description: "Short activities for study breaks." },
   honour: { label: "Hall of Honour", description: "Community study leaders." },
-  mentor: { label: "Mentor Hub", description: "Guidance and shared challenges." },
   analytics: { label: "Analytics", description: "Study time and habit trends." },
   profile: { label: "Profile", description: "Progress, streak, and account." },
   settings: { label: "Settings", description: "App preferences and account." },

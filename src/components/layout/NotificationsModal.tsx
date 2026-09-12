@@ -1,14 +1,18 @@
 import { Bell, Megaphone, Sparkles, Zap } from "lucide-react";
 import { useStudyGrind } from "../../context/StudyGrindContext";
 import { pointsEventStatus } from "../../lib/point-multiplier";
-import { getNotificationService, syncNotificationSchedule } from "../../lib/notifications";
-import { isNative } from "../../lib/native";
+import { ensureExactAlarmPermission, getNotificationService, syncNotificationSchedule } from "../../lib/notifications";
+import { formatReminderTime } from "../../lib/reminder-time";
+import { isAndroid, isNative } from "../../lib/native";
 import { Modal } from "../ui/Modal";
 import { PressableButton } from "../ui/PressableButton";
 
 export function NotificationsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user, store, updateUser, setToast } = useStudyGrind();
   if (!user) return null;
+
+  const reminderHour = user.reminderHour ?? 17;
+  const reminderMinute = user.reminderMinute ?? 0;
 
   const items: { id: string; title: string; body: string; kind: "inbox" | "announcement" | "event" | "milestone" }[] = [];
 
@@ -48,10 +52,17 @@ export function NotificationsModal({ open, onClose }: { open: boolean; onClose: 
     const next = !user.notifications;
     if (next && isNative) {
       const svc = await getNotificationService();
-      if (svc.isSupported()) await svc.requestPermission();
+      if (svc.isSupported()) {
+        const perm = await svc.requestPermission();
+        if (perm !== "granted") {
+          setToast("Notification permission denied.");
+          return;
+        }
+      }
+      if (isAndroid) await ensureExactAlarmPermission();
     }
     updateUser({ ...user, notifications: next, notificationPref: next });
-    await syncNotificationSchedule(next);
+    await syncNotificationSchedule(next, reminderHour, reminderMinute);
     setToast(next ? "Daily study reminders on" : "Reminders off");
   };
 
@@ -66,12 +77,12 @@ export function NotificationsModal({ open, onClose }: { open: boolean; onClose: 
       <div className="notifications-toggle-row">
         <div>
           <b>
-            <Bell size={14} /> Daily study reminders
+            <Bell size={14} /> Daily study reminders (optional)
           </b>
           <p className="soft">
             {user.notifications
               ? isNative
-                ? "On — reminder around 5:00 PM on this device"
+                ? `On — ${formatReminderTime(reminderHour, reminderMinute)} London time (GMT/BST)`
                 : "On — reminders work on the Android app"
               : "Off — enable to get nudges to study"}
           </p>

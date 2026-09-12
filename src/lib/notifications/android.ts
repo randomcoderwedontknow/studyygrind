@@ -4,11 +4,11 @@ import type { NotificationService } from "./types";
 
 const DAILY_ID = 9001;
 const CHANNEL_ID = "study-reminders-v2";
-const TZ = "America/New_York";
+export const REMINDER_TIME_ZONE = "Europe/London";
 
-function nextEasternReminder(): Date {
+function nextReminderInTimeZone(hour: number, minute: number, timeZone: string): Date {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: TZ,
+    timeZone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -23,37 +23,42 @@ function nextEasternReminder(): Date {
   const h = get("hour");
   const min = get("minute");
   let targetDay = d;
-  if (h > 17 || (h === 17 && min >= 0)) targetDay += 1;
-  const utcGuess = Date.UTC(y, m - 1, targetDay, 17, 0, 0);
+  if (h > hour || (h === hour && min >= minute)) targetDay += 1;
+  const utcGuess = Date.UTC(y, m - 1, targetDay, hour, minute, 0);
   for (let i = 0; i < 48; i++) {
     const probe = new Date(utcGuess + i * 30 * 60_000);
     const p = new Intl.DateTimeFormat("en-US", {
-      timeZone: TZ,
+      timeZone,
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
     }).formatToParts(probe);
     const ph = Number(p.find((x) => x.type === "hour")?.value ?? 0);
     const pm = Number(p.find((x) => x.type === "minute")?.value ?? 0);
-    if (ph === 17 && pm === 0) return probe;
+    if (ph === hour && pm === minute) return probe;
   }
   return new Date(Date.now() + 60_000);
 }
 
-async function ensureChannel() {
+async function ensureChannel(hour: number, minute: number) {
+  const label = `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${hour < 12 ? "AM" : "PM"} London`;
   await LocalNotifications.createChannel({
     id: CHANNEL_ID,
     name: "Study reminders",
-    description: "Daily StudyGrind focus reminders at 5 PM Eastern",
+    description: `Daily StudyGrind focus reminders at ${label} (GMT/BST)`,
     importance: 4,
     visibility: 1,
   });
 }
 
-export async function scheduleDailyReminderInternal() {
-  await ensureChannel();
+export async function scheduleDailyReminderInternal(
+  hour: number,
+  minute: number,
+  timeZone: string = REMINDER_TIME_ZONE,
+) {
+  await ensureChannel(hour, minute);
   await LocalNotifications.cancel({ notifications: [{ id: DAILY_ID }] });
-  const at = nextEasternReminder();
+  const at = nextReminderInTimeZone(hour, minute, timeZone);
   const daySeed = at.toISOString().slice(0, 10);
   await LocalNotifications.schedule({
     notifications: [
@@ -104,8 +109,8 @@ export const androidNotificationService: NotificationService = {
     return perm.display === "granted" ? ("granted" as const) : ("denied" as const);
   },
 
-  async scheduleDailyReminder(_hour: number, _minute: number, _tz: string) {
-    await scheduleDailyReminderInternal();
+  async scheduleDailyReminder(hour: number, minute: number, tz: string) {
+    await scheduleDailyReminderInternal(hour, minute, tz);
   },
 
   async cancelDailyReminder() {
