@@ -1,0 +1,258 @@
+/* Android (Capacitor) overrides — tuned for Samsung Galaxy A05
+   (~360 x 800 CSS px, 60 Hz, PowerVR GE8320 — keep effects cheap). */
+
+/* ---- Performance: kill expensive effects ---- */
+body.platform-android * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+body.platform-android .card,
+body.platform-android .metric,
+body.platform-android .hero-panel,
+body.platform-android .identity-status-box,
+body.platform-android .task-card,
+body.platform-android .note-card,
+body.platform-android .profile-head,
+body.platform-android .theme-card,
+body.platform-android .flash {
+  box-shadow: none;
+}
+body.platform-android .card:hover,
+body.platform-android .quick:hover { box-shadow: none; transform: none; }
+body.platform-android .hero-panel::after { display: none; }
+body.platform-android .profile-head.aura::after { display: none; }
+body.platform-android .timer-ring { filter: none; }
+body.platform-android body.study-glow .ring-progress,
+body.platform-android .study-glow .ring-progress { filter: none; }
+body.platform-android .particle-trail::before,
+body.platform-android.study-glow-particles::before { display: none; }
+body.platform-android .theme-card.honour .theme-swatch::after,
+body.platform-android .theme-card.vip .theme-swatch::after { display: none; }
+body.platform-android .card { transition: none; }
+
+/* Lifted dark surfaces (AMOLED-ish panel reads muddy at #15201b) */
+body.platform-android[data-mode="dark"] {
+  --bg: #0b110e;
+  --surface: #111a16;
+  --surface-2: #182420;
+  --surface-raised: #1a2621;
+  --border: #223029;
+}
+
+/* ---- Shell ---- */
+body.platform-android .topbar {
+  min-height: 56px;
+  padding: 6px var(--sp-3);
+  padding-top: max(6px, env(safe-area-inset-top));
+}
+body.platform-android .topbar-title b { font-size: var(--fs-md); }
+body.platform-android .topbar-title small { font-size: var(--fs-xs); max-width: 46vw; }
+body.platform-android .points-pill { padding: 5px 10px; font-size: var(--fs-xs); }
+body.platform-android .topbar .icon-btn { width: 40px; height: 40px; min-height: 40px; }
+
+body.platform-android .content {
+  max-width: 100%;
+  padding: var(--sp-4) var(--sp-3) calc(var(--bottomnav-h) + var(--sp-6) + env(safe-area-inset-bottom));
+  gap: var(--sp-3);
+}
+body.platform-android .card {
+  padding: var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border-color: var(--border);
+}
+body.platform-android .card.elevated,
+body.platform-android .grouped-list-row {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+}
+body.platform-android .metric { background: var(--surface-raised); }
+body.platform-android h4 { font-size: var(--fs-md); }
+body.platform-android .hero-panel { padding: var(--sp-5) var(--sp-4) var(--sp-4); border-radius: var(--r-md); }
+body.platform-android .hero-panel h4 { font-size: var(--fs-xl); }
+
+/* Drawer opened from the "More" tab — full-height, wide enough for thumbs */
+body.platform-android .drawer { width: min(100vw - 48px, 320px); box-shadow: none; }
+body.platform-android .drawer-item { min-height: 52px; padding: 10px var(--sp-3); }
+body.platform-android .drawer-stats { grid-template-columns: repeat(3, 1fr); }
+
+/* Bottom nav: raised centre timer; keep nav above keyboard-resized viewport */
+body.platform-android .bottom-nav { box-shadow: none; }
+body.platform-android .bottom-nav-item.center .nav-fab { box-shadow: none; }
+
+/* Lock/impersonation banners sit under topbar, not fixed */
+body.platform-android .lock-banner { font-size: var(--fs-xs); padding: 6px var(--sp-3); }
+
+/* Mini timer docked above bottom nav */
+body.platform-android .floating-mini-timer.docked {
+  left: auto;
+  right: var(--sp-3);
+  bottom: calc(var(--bottomnav-h) + var(--sp-3) + env(safe-area-inset-bottom));
+  top: auto;
+  max-width: calc(100vw - 24px);
+}
+body.platform-android .mini-timer-body { box-shadow: none; }
+
+/* Toast above the nav */
+body.platform-android .toast { bottom: calc(var(--bottomnav-h) + var(--sp-3) + env(safe-area-inset-bottom)); max-width: calc(100vw - 32px); }
+
+/* ---- Bottom sheets (Modal) ---- */
+body.platform-android .modal {
+  padding: var(--sp-4) var(--sp-4) calc(var(--sp-5) + env(safe-area-inset-bottom));
+  gap: var(--sp-3);
+  box-shadow: none;
+}
+body.platform-android .modal > .row:first-child { top: calc(-1 * var(--sp-4)); }
+body.platform-android .modal-wrap { animation: none; }
+/* When the soft keyboard resizes the viewport the sheet shrinks and scrolls internally */
+body.platform-android .modal { max-height: calc(100dvh - 32px); }
+
+/* ---- Inputs: 16px stops focus-zoom; 48px targets ---- */
+body.platform-android input,
+body.platform-android select,
+body.platform-android textarea,
+body.platform-android button { font-size: 16px; }
+body.platform-android input, body.platform-android select { min-height: 48px; }
+body.platform-android textarea { min-height: 88px; }
+body.platform-android .chip { min-height: 40px; padding: 8px 14px; font-size: var(--fs-sm); }
+body.platform-android .horizontal-tab { min-height: 40px; }
+
+/* ---- Grids: two columns max on 360px ---- */
+body.platform-android .grid4,
+body.platform-android .analytics-stats-grid,
+body.platform-android .theme-grid,
+body.platform-android .today-grid,
+body.platform-android .quick-actions,
+body.platform-android .onboarding-theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
+body.platform-android .grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
+body.platform-android .grid2 { gap: var(--sp-2); }
+body.platform-android .shop-items-grid,
+body.platform-android .booster-grid,
+body.platform-android .games-grid,
+body.platform-android .notes-grid,
+body.platform-android .kanban-grid,
+body.platform-android .notes-layout,
+body.platform-android .timer-picker-grid { grid-template-columns: 1fr; gap: var(--sp-2); }
+
+body.platform-android .metric { padding: var(--sp-3); }
+body.platform-android .metric b { font-size: var(--fs-xl); }
+body.platform-android .quick { padding: var(--sp-3); gap: var(--sp-1); }
+body.platform-android .quick svg { width: 36px; height: 36px; padding: 8px; }
+body.platform-android .quick b { font-size: var(--fs-sm); }
+body.platform-android .quick small { font-size: var(--fs-xs); }
+
+/* Home hero: stack side on narrow */
+body.platform-android .home-hero { flex-direction: column; align-items: stretch; }
+body.platform-android .home-hero .hero-side { flex-direction: row; align-items: center; justify-content: space-between; }
+body.platform-android .home-hero .hero-main .rank-progress-bar { max-width: 100%; }
+
+/* Identity box */
+body.platform-android .identity-status-box { grid-template-columns: 1fr; gap: var(--sp-3); padding: var(--sp-4); }
+body.platform-android .identity-stats { width: 100%; grid-template-columns: 1fr 1fr; }
+body.platform-android .identity-title { font-size: var(--fs-xl); }
+
+/* Timer */
+body.platform-android .timer-ring { width: min(72vw, 250px) !important; height: auto !important; }
+body.platform-android .timer-ring-wrap { margin: var(--sp-2) 0; }
+body.platform-android .clock { font-size: clamp(30px, 10vw, 44px); }
+body.platform-android .timer-controls { gap: var(--sp-3); }
+body.platform-android .timer-main-btn { min-width: 150px; box-shadow: none; }
+body.platform-android .timer-stepper .icon-btn { width: 44px; height: 44px; min-height: 44px; }
+
+/* Tasks */
+body.platform-android .task-fab { box-shadow: none; }
+body.platform-android .task-actions .pressable { flex: 1 1 auto; }
+body.platform-android .task-actions .icon-btn { flex: 0 0 40px; }
+
+/* Shop */
+body.platform-android .shop-tabs-card {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: var(--sp-2) var(--sp-3) var(--sp-1);
+  border-radius: 0 0 var(--r-md) var(--r-md);
+  margin: 0 calc(-1 * var(--sp-3));
+  border-left: 0; border-right: 0;
+}
+body.platform-android .theme-swatch { height: 64px; }
+body.platform-android .theme-body .row.wrap { flex-direction: column; align-items: stretch; }
+body.platform-android .theme-body .row.wrap button { width: 100%; }
+body.platform-android .shop-item-card .row,
+body.platform-android .booster-card .row { flex-wrap: wrap; gap: var(--sp-2); }
+body.platform-android .shop-item-foot button { flex: 1 1 auto; min-width: 88px; }
+body.platform-android .shop-hero { flex-direction: column; align-items: stretch; }
+body.platform-android .shop-hero .hero-side { flex-direction: row; justify-content: flex-start; }
+
+/* Notes */
+body.platform-android .notes-sidebar { position: static; }
+body.platform-android .note-actions { gap: 0; }
+
+/* Profile */
+body.platform-android .profile-head { grid-template-columns: auto 1fr; }
+body.platform-android .profile-head .xp-box { grid-column: 1 / -1; text-align: left; }
+
+/* Owner Settings */
+body.platform-android .owner-tabs-card {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  border-radius: 0 0 var(--r-md) var(--r-md);
+  margin: 0 calc(-1 * var(--sp-3));
+  border-left: 0; border-right: 0;
+}
+body.platform-android .owner-hero { flex-direction: column; align-items: stretch; }
+body.platform-android .owner-user { padding: var(--sp-3); min-height: 60px; }
+body.platform-android .owner-user-head { flex-direction: column; gap: 6px; }
+body.platform-android .owner-panel .setting-row { flex-wrap: wrap; gap: var(--sp-2); }
+body.platform-android .owner-panel .row.wrap > * { flex: 1 1 100%; }
+body.platform-android .owner-panel .row.wrap .chip,
+body.platform-android .owner-expiry-btns .chip { flex: 0 0 auto; }
+body.platform-android .owner-expiry-btns { width: 100%; justify-content: flex-end; }
+body.platform-android .owner-num { max-width: 100%; }
+body.platform-android .owner-entry-card { flex-direction: column; align-items: stretch; }
+
+/* Recommendations */
+body.platform-android .recommendation-card { flex-direction: column; align-items: flex-start; }
+
+/* Auth / onboarding */
+body.platform-android .center-card { padding: var(--sp-6) var(--sp-5); box-shadow: none; border-radius: var(--r-lg); }
+body.platform-android .auth-shell { padding: max(var(--sp-4), env(safe-area-inset-top)) var(--sp-3) max(var(--sp-4), env(safe-area-inset-bottom)); align-items: start; }
+
+/* Motion: shorter and cheaper */
+body.platform-android .page-enter,
+body.platform-android .page-enter-stagger > * { animation-duration: 0.16s; }
+body.platform-android .page-enter-stagger > *:nth-child(n+4) { animation-delay: 0.06s; }
+body.platform-android .pulse .clock { animation: none; }
+
+/* ---- Very short viewports (keyboard open on A05) ---- */
+@media (max-height: 520px) {
+  body.platform-android .bottom-nav { display: none; }
+  body.platform-android .task-fab { display: none; }
+  body.platform-android .content { padding-bottom: var(--sp-5); }
+}
+
+/* ---- Landscape phone ---- */
+@media (orientation: landscape) and (max-height: 420px) {
+  body.platform-android .timer-ring { width: min(40vh, 200px) !important; }
+  body.platform-android .grid4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* Dynamic accent: three swatches per row on 360px */
+body.platform-android .accent-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
+body.platform-android .accent-swatch { min-height: 78px; padding: var(--sp-2); box-shadow: none; }
+body.platform-android .accent-swatch.active { box-shadow: none; }
+body.platform-android .accent-dot { width: 32px; height: 32px; }
+
+/* Soundscape */
+body.platform-android .soundscape-card { padding: var(--sp-3); }
+body.platform-android .soundscape-volume { grid-template-columns: auto 1fr 40px; gap: var(--sp-2); }
+body.platform-android .soundscape-volume input[type="range"] { min-height: 40px; }
+
+/* Weekly recap */
+body.platform-android .recap-card .row { flex-direction: column; align-items: stretch; }
+body.platform-android .recap-card .row button { width: 100%; }
+body.platform-android .recap-total b { font-size: var(--fs-2xl); }
+body.platform-android .recap-chart .recap-bars { height: 100px; }
+body.platform-android .recap-metric { padding: var(--sp-2) var(--sp-3); }
+body.platform-android .recap-metric b { font-size: var(--fs-md); }
+body.platform-android .recap-notice { padding: var(--sp-3); font-size: var(--fs-sm); }

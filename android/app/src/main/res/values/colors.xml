@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Calm Pro — matches src/styles/tokens.css -->
+<resources>
+    <color name="colorPrimary">#31BE83</color>
+    <color name="colorPrimaryDark">#259A68</color>
+    <color name="colorAccent">#3FD3BE</color>
+    <color name="calm_bg">#F4F7F5</color>
+    <color name="calm_surface">#FFFFFF</color>
+    <color name="calm_border">#E2EBE6</color>
+</resources>

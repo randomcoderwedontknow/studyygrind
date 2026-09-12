@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static preview shown in the widget picker on API < 31 (API 31+ uses previewLayout). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="220dp"
+    android:height="220dp"
+    android:viewportWidth="220"
+    android:viewportHeight="220">
+    <!-- card -->
+    <path
+        android:fillColor="#172420"
+        android:pathData="M24,0 H196 A24,24 0 0 1 220,24 V196 A24,24 0 0 1 196,220 H24 A24,24 0 0 1 0,196 V24 A24,24 0 0 1 24,0 Z" />
+    <path
+        android:strokeColor="#27362f"
+        android:strokeWidth="1"
+        android:pathData="M24,0.5 H196 A23.5,23.5 0 0 1 219.5,24 V196 A23.5,23.5 0 0 1 196,219.5 H24 A23.5,23.5 0 0 1 0.5,196 V24 A23.5,23.5 0 0 1 24,0.5 Z" />
+    <!-- eyebrow -->
+    <path android:fillColor="#98aca4" android:pathData="M20,22 h64 v6 h-64 z" />
+    <!-- big number block -->
+    <path android:fillColor="#ecf5f1" android:pathData="M20,40 h54 v34 h-54 z" />
+    <path android:fillColor="#98aca4" android:pathData="M80,62 h44 v8 h-44 z" />
+    <!-- streak / points labels -->
+    <path android:fillColor="#98aca4" android:pathData="M20,94 h34 v5 h-34 z" />
+    <path android:fillColor="#ecf5f1" android:pathData="M20,104 h28 v12 h-28 z" />
+    <path android:fillColor="#98aca4" android:pathData="M110,94 h34 v5 h-34 z" />
+    <path android:fillColor="#ecf5f1" android:pathData="M110,104 h40 v12 h-40 z" />
+    <!-- start button pill -->
+    <path
+        android:fillColor="#31be83"
+        android:pathData="M40,160 H180 A20,20 0 0 1 200,180 A20,20 0 0 1 180,200 H40 A20,20 0 0 1 20,180 A20,20 0 0 1 40,160 Z" />
+    <path android:fillColor="#ffffff" android:pathData="M80,176 h60 v8 h-60 z" />
+</vector>

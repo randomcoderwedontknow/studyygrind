@@ -1,0 +1,194 @@
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.page-enter {
+  animation: pageEnter 0.18s var(--ease-out) both;
+}
+
+.page-enter-stagger > * {
+  animation: pageEnter 0.22s var(--ease-out) both;
+}
+.page-enter-stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.page-enter-stagger > *:nth-child(2) { animation-delay: 0.04s; }
+.page-enter-stagger > *:nth-child(3) { animation-delay: 0.06s; }
+.page-enter-stagger > *:nth-child(4) { animation-delay: 0.08s; }
+.page-enter-stagger > *:nth-child(5) { animation-delay: 0.10s; }
+.page-enter-stagger > *:nth-child(6) { animation-delay: 0.12s; }
+
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pressable {
+  transition: transform 0.14s cubic-bezier(0.34, 1.4, 0.64, 1), box-shadow 0.2s ease, filter 0.15s ease;
+}
+@media (hover: hover) {
+  .pressable:hover:not(:disabled) { filter: brightness(1.04); }
+}
+.pressable:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.card-rise {
+  animation: cardRise 0.24s var(--ease-out) both;
+}
+
+.shop-tab-panel {
+  animation: pageEnter 0.18s var(--ease-out) both;
+}
+
+@keyframes cardRise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-scale-in {
+  animation: modalIn 0.22s var(--ease-out) both;
+}
+body.platform-android .modal-scale-in { animation-name: sheetIn; }
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.reward-pop {
+  animation: rewardPop 0.55s cubic-bezier(0.34, 1.5, 0.64, 1) both;
+}
+
+@keyframes rewardPop {
+  0% { opacity: 0; transform: scale(0.6); }
+  60% { transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.unlock-glow {
+  animation: unlockGlow 0.8s ease both;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 50%, transparent);
+}
+
+@keyframes unlockGlow {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 60%, transparent); }
+  50% { box-shadow: 0 0 28px 8px color-mix(in srgb, var(--primary) 35%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.points-ticker {
+  animation: tickUp 0.4s ease;
+}
+
+@keyframes tickUp {
+  from { transform: translateY(6px); opacity: 0.5; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.flashcard-flip {
+  perspective: 900px;
+}
+.flashcard-inner {
+  transition: transform 0.55s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.flashcard-inner.flipped {
+  transform: rotateY(180deg);
+}
+.flashcard-face {
+  backface-visibility: hidden;
+}
+.flashcard-face.back {
+  transform: rotateY(180deg);
+}
+
+.timer-phase-focus .ring-progress {
+  stroke: var(--primary);
+}
+.timer-phase-break .ring-progress {
+  stroke: color-mix(in srgb, var(--primary) 55%, #60a5fa);
+}
+
+.shop-buy-shake {
+  animation: buyShake 0.35s ease;
+}
+
+@keyframes buyShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.empty-float {
+  animation: emptyFloat 3s ease-in-out infinite;
+}
+
+@keyframes emptyFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.confetti-lite {
+  position: relative;
+  overflow: hidden;
+}
+.confetti-lite::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--primary) 30%, transparent) 0%, transparent 70%);
+  animation: confettiPulse 0.6s ease;
+  pointer-events: none;
+}
+
+@keyframes confettiPulse {
+  from { opacity: 1; transform: scale(0.5); }
+  to { opacity: 0; transform: scale(1.4); }
+}
+
+.particle-trail::before {
+  content: "";
+  position: fixed;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--primary) 12%, transparent), transparent);
+  pointer-events: none;
+  animation: particleDrift 8s ease-in-out infinite;
+  top: 20%;
+  right: 10%;
+  z-index: 0;
+}
+
+@keyframes particleDrift {
+  0%, 100% { transform: translate(0, 0); opacity: 0.4; }
+  50% { transform: translate(-30px, 20px); opacity: 0.7; }
+}
+
+.unlock-pop {
+  animation: unlockPop 0.55s cubic-bezier(0.22, 0.8, 0.22, 1) both;
+}
+@keyframes unlockPop {
+  0% { transform: scale(0.85); opacity: 0; }
+  60% { transform: scale(1.04); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.welcome-burst {
+  animation: welcomeBurst 0.8s ease both;
+}
+@keyframes welcomeBurst {
+  from { opacity: 0; transform: scale(0.92); filter: blur(4px); }
+  to { opacity: 1; transform: scale(1); filter: none; }
+}
+
+.combo-tier-up {
+  animation: comboPulse 0.6s ease;
+}
+@keyframes comboPulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 40%, transparent); }
+  50% { box-shadow: 0 0 0 12px transparent; }
+}

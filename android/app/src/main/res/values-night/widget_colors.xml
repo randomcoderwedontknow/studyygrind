@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark palette — mirrors body[data-mode="dark"] in tokens.css / android.css. -->
+<resources>
+    <color name="widget_surface">#FF111A16</color>
+    <color name="widget_border">#FF223029</color>
+    <color name="widget_tint">#2E31BE83</color>
+    <color name="widget_text">#FFECF5F1</color>
+    <color name="widget_muted">#FF98ACA4</color>
+    <color name="widget_primary">#FF31BE83</color>
+    <color name="widget_primary_2">#FF3FD3BE</color>
+    <color name="widget_on_primary">#FFFFFFFF</color>
+</resources>

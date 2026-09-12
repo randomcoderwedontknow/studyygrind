@@ -1,0 +1,108 @@
+/* StudyGrind design tokens — soft modern.
+   --primary / --primary-2 / --accent-fill / --theme-gradient are set at runtime by theme-engine.ts. */
+
+:root {
+  --primary: #31be83;
+
+  /* spacing */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+
+  /* radii */
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 24px;
+  --r-pill: 999px;
+
+  /* type */
+  --font-body: "Inter Variable", Inter, "Segoe UI", system-ui, sans-serif;
+  --font-head: "Manrope Variable", Manrope, "Inter Variable", Inter, "Segoe UI", system-ui, sans-serif;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 17px;
+  --fs-xl: 20px;
+  --fs-2xl: 24px;
+  --fs-3xl: 30px;
+  --lh-tight: 1.15;
+  --lh-body: 1.5;
+
+  /* chrome */
+  --topbar-h: 56px;
+  --bottomnav-h: 64px;
+  --sidebar-w: 260px;
+  --content-max: 680px;
+  --row-h: 56px;
+
+  /* motion */
+  --ease-out: cubic-bezier(0.22, 0.8, 0.22, 1);
+  --dur-fast: 140ms;
+  --dur-base: 200ms;
+  --dur-slow: 250ms;
+
+  /* Calm Pro light surfaces */
+  --bg: #f4f7f5;
+  --surface: #ffffff;
+  --surface-2: #f4f8f6;
+  --surface-raised: #fafcfb;
+  --text: #182320;
+  --muted: #64746e;
+  --border: #e2ebe6;
+  --success: #22a06b;
+  --warning: #d97706;
+  --info: #2563eb;
+  --danger: #d64f57;
+  --on-primary: #ffffff;
+  --toggle-knob: #ffffff;
+  --banner-warning-bg: #fff1cc;
+  --banner-warning-fg: #6b4400;
+  --banner-info-bg: #dbe8ff;
+  --banner-info-fg: #123a7a;
+  --overlay-badge-bg: rgba(255, 255, 255, 0.92);
+  --overlay-badge-fg: #182320;
+  --nav-shadow: 0 -2px 12px rgba(20, 40, 32, 0.06);
+  --sh-1: 0 1px 2px rgba(20, 40, 32, 0.04), 0 4px 14px -6px rgba(20, 40, 32, 0.08);
+  --sh-2: 0 2px 4px rgba(20, 40, 32, 0.05), 0 12px 32px -12px rgba(20, 40, 32, 0.16);
+  --scrim: rgba(12, 20, 17, 0.45);
+
+  color-scheme: light;
+}
+
+body[data-mode="dark"] {
+  --bg: #0e1613;
+  --surface: #172420;
+  --surface-2: #1d2c27;
+  --surface-raised: #1c2b26;
+  --text: #ecf5f1;
+  --muted: #98aca4;
+  --border: #27362f;
+  --toggle-knob: #f0f5f2;
+  --banner-warning-bg: #3a2c0a;
+  --banner-warning-fg: #ffd88a;
+  --banner-info-bg: #14264a;
+  --banner-info-fg: #bcd3ff;
+  --overlay-badge-bg: rgba(14, 22, 19, 0.88);
+  --overlay-badge-fg: #ecf5f1;
+  --nav-shadow: 0 -2px 12px rgba(0, 0, 0, 0.35);
+  --sh-1: 0 1px 2px rgba(0, 0, 0, 0.25), 0 4px 14px -6px rgba(0, 0, 0, 0.35);
+  --sh-2: 0 2px 4px rgba(0, 0, 0, 0.3), 0 14px 36px -12px rgba(0, 0, 0, 0.55);
+  --scrim: rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+
+/* Derived tints — recomputed whenever --primary or --surface changes */
+:root, body {
+  --tint-4: color-mix(in srgb, var(--primary) 4%, var(--surface));
+  --tint-8: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  --tint-12: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  --tint-18: color-mix(in srgb, var(--primary) 18%, var(--surface));
+  --ring: 0 0 0 3px color-mix(in srgb, var(--primary) 24%, transparent);
+  --accent-line: var(--theme-gradient, linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--primary) 55%, var(--surface))));
+}

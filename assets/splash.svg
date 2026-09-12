@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2732 2732" width="2732" height="2732">
+  <defs>
+    <radialGradient id="sgRadial" cx="50%" cy="48%" r="55%">
+      <stop offset="0%" stop-color="#16241e"/>
+      <stop offset="100%" stop-color="#0c1411"/>
+    </radialGradient>
+    <linearGradient id="sgBadge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3fd99a"/>
+      <stop offset="100%" stop-color="#1f9a68"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="2732" height="2732" fill="url(#sgRadial)"/>
+
+  <g transform="translate(1366, 1280)">
+    <rect x="-260" y="-260" width="520" height="520" rx="118" fill="url(#sgBadge)"/>
+    <rect x="-260" y="-260" width="520" height="260" rx="118" fill="#ffffff" fill-opacity="0.08"/>
+    <circle cx="0" cy="0" r="170" fill="none" stroke="#ffffff" stroke-opacity="0.32" stroke-width="18"/>
+    <path d="M 0 -170 A 170 170 0 1 1 -170 0"
+          fill="none" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+    <path d="M -76 5 L -22 60 L 84 -50"
+          fill="none" stroke="#ffffff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <text x="1366" y="1820" text-anchor="middle"
+        font-family="Inter, 'Segoe UI', Arial, sans-serif" font-weight="800" font-size="148" fill="#ebf5f1" letter-spacing="-2">Study<tspan fill="#3fd99a">Grind</tspan></text>
+  <text x="1366" y="1900" text-anchor="middle"
+        font-family="Inter, 'Segoe UI', Arial, sans-serif" font-weight="500" font-size="44" fill="#9bb2a9" letter-spacing="3">FOCUS - LEARN - WIN</text>
+</svg>

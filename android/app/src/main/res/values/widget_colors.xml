@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget palette — mirrors src/styles/tokens.css light surfaces. Dark values in values-night. -->
+<resources>
+    <color name="widget_surface">#FFFAFCFB</color>
+    <color name="widget_border">#FFE2EBE6</color>
+    <color name="widget_tint">#2231BE83</color>
+    <color name="widget_text">#FF182320</color>
+    <color name="widget_muted">#FF64746E</color>
+    <color name="widget_primary">#FF31BE83</color>
+    <color name="widget_primary_2">#FF3FD3BE</color>
+    <color name="widget_on_primary">#FFFFFFFF</color>
+</resources>

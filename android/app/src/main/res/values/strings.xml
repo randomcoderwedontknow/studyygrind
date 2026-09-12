@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">StudyGrind</string>
+    <string name="title_activity_main">StudyGrind</string>
+    <string name="app_tagline">Simple study app — focus, tasks, notes, and flashcards.</string>
+    <string name="package_name">app.studyygrind.app</string>
+    <string name="custom_url_scheme">app.studyygrind.app</string>
+
+    <!-- Home-screen widget -->
+    <string name="widget_name">StudyGrind Focus</string>
+    <string name="widget_description">Today\'s focus minutes, streak and points — tap to start a session.</string>
+    <string name="widget_min_today">min today</string>
+    <string name="widget_streak">Streak</string>
+    <string name="widget_points">Points</string>
+    <string name="widget_start_focus">Start focus</string>
+</resources>
