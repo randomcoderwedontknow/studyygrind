@@ -56,9 +56,15 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/studygrind_widget_quick_info" />
         </receiver>
 
-        <receiver android:name=".TimerNotificationReceiver" android:exported="false" />
+        <receiver android:name=".TimerNotificationReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="studygrind.timer.pause" />
+                <action android:name="studygrind.timer.add5" />
+                <action android:name="studygrind.timer.end" />
+            </intent-filter>
+        </receiver>
 
-        <receiver android:name=".BootReceiver" android:exported="false">
+        <receiver android:name=".BootReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />

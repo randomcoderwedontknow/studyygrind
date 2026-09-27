@@ -1,5 +1,7 @@
 import { isNative } from "./native";
 
+/** Ship target is Android APK: voice notes use @capacitor-community/speech-recognition on device; browser Web Speech is dev-only fallback. */
+
 type SpeechPlugin = {
   available(): Promise<{ available: boolean }>;
   start(options: { language?: string; maxResults?: number; prompt?: string }): Promise<{ matches?: string[] }>;
