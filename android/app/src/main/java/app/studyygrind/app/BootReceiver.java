@@ -14,7 +14,7 @@ public class BootReceiver extends BroadcastReceiver {
         if (intent == null || intent.getAction() == null) return;
         if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())
                 || Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())) {
-            StudyGrindWidget.refreshAll(context);
+            WidgetHelper.refreshAll(context);
             if (NotificationPrefsHelper.isEnabled(context)) {
                 ReminderAlarmReceiver.ensureChannel(context);
                 DailyReminderScheduler.scheduleNextAlarm(context);

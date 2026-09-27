@@ -17,9 +17,18 @@ try {
   input = out;
 }
 
-/** contain = show full timer + top alarm pills (no crop). */
-const buf = await sharp(input)
-  .resize(1024, 1024, { fit: "contain", background: BG, position: "centre" })
+const CANVAS = 1024;
+const SAFE_ZONE = 0.68;
+const artSize = Math.round(CANVAS * SAFE_ZONE);
+const art = await sharp(input)
+  .resize(artSize, artSize, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+  .png()
+  .toBuffer();
+const left = Math.floor((CANVAS - artSize) / 2);
+const buf = await sharp({
+  create: { width: CANVAS, height: CANVAS, channels: 4, background: BG },
+})
+  .composite([{ input: art, left, top: left }])
   .png()
   .toBuffer();
 await sharp(buf).toFile(out);

@@ -5,7 +5,16 @@
  * time so the AudioContext is allowed to run. stopSoundscape() tears the graph down.
  */
 
-export type SoundscapeId = "off" | "white" | "brown" | "rain" | "cafe" | "lofi";
+export type SoundscapeId =
+  | "off"
+  | "white"
+  | "brown"
+  | "rain"
+  | "cafe"
+  | "lofi"
+  | "liquid-pad"
+  | "liquid-rain"
+  | "liquid-flow";
 
 export const SOUNDSCAPES: { id: SoundscapeId; name: string; hint: string }[] = [
   { id: "off", name: "Off", hint: "Silence" },
@@ -14,6 +23,9 @@ export const SOUNDSCAPES: { id: SoundscapeId; name: string; hint: string }[] = [
   { id: "rain", name: "Rain", hint: "Soft drips" },
   { id: "cafe", name: "Café hum", hint: "Warm murmur" },
   { id: "lofi", name: "Lo-fi pad", hint: "Slow chords" },
+  { id: "liquid-pad", name: "Liquid pad", hint: "Glossy ambient swell" },
+  { id: "liquid-rain", name: "Liquid rain", hint: "Smooth drizzle bed" },
+  { id: "liquid-flow", name: "Liquid flow", hint: "Slow pulse & shimmer" },
 ];
 
 type Graph = {
@@ -101,6 +113,7 @@ function buildGraph(ac: AudioContext, id: SoundscapeId, master: GainNode): Graph
       nodes.push(src, lp, g);
       break;
     }
+    case "liquid-rain":
     case "rain": {
       // steady rain bed: pink noise, band-passed
       const bed = loopSource(ac, noiseBuffer(ac, "pink"));
@@ -178,6 +191,7 @@ function buildGraph(ac: AudioContext, id: SoundscapeId, master: GainNode): Graph
       nodes.push(src, bp, g, lfo, lfoGain, lfo2, lfo2Gain, hiss, hp, hissGain);
       break;
     }
+    case "liquid-pad":
     case "lofi": {
       // detuned oscillator pad on a slow chord cycle, lowpassed, tremolo LFO
       const chords = [
@@ -241,6 +255,24 @@ function buildGraph(ac: AudioContext, id: SoundscapeId, master: GainNode): Graph
       cg.gain.value = 0.015;
       crackle.connect(chp).connect(cg).connect(master);
       nodes.push(crackle, chp, cg);
+      break;
+    }
+    case "liquid-flow": {
+      const src = loopSource(ac, noiseBuffer(ac, "pink"));
+      const bp = ac.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = 520;
+      bp.Q.value = 1.2;
+      const g = ac.createGain();
+      g.gain.value = 0.42;
+      const lfo = ac.createOscillator();
+      lfo.frequency.value = 0.08;
+      const lfoG = ac.createGain();
+      lfoG.gain.value = 0.12;
+      lfo.connect(lfoG).connect(g.gain);
+      lfo.start();
+      src.connect(bp).connect(g).connect(master);
+      nodes.push(src, bp, g, lfo, lfoG);
       break;
     }
     case "off":

@@ -31,6 +31,9 @@ const LEGACY = {
 
 /** Matches the dark forest green in the clock launcher art. */
 const BG = "#163d2a";
+/** Adaptive icon safe zone (~66% visible after launcher mask). */
+const SAFE_ZONE = 0.68;
+const LEGACY_SCALE = 0.88;
 
 async function writeBuffer(dir, name, buf) {
   const folder = join(resRoot, dir);
@@ -63,10 +66,19 @@ async function writeSolid(dir, name, size, color) {
   await writeBuffer(dir, name, buf);
 }
 
-/** Full timer + top alarm marks — fit contain so nothing is clipped. */
-async function writeLauncherArt(dir, name, size) {
-  const buf = await sharp(iconPath)
-    .resize(size, size, { fit: "contain", background: BG, position: "centre" })
+/** Scale art into adaptive safe zone so launcher mask does not clip top pills. */
+async function writeLauncherArt(dir, name, size, scale = SAFE_ZONE) {
+  const artSize = Math.round(size * scale);
+  const art = await sharp(iconPath)
+    .resize(artSize, artSize, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toBuffer();
+  const left = Math.floor((size - artSize) / 2);
+  const top = Math.floor((size - artSize) / 2);
+  const buf = await sharp({
+    create: { width: size, height: size, channels: 4, background: BG },
+  })
+    .composite([{ input: art, left, top }])
     .png()
     .toBuffer();
   await writeBuffer(dir, name, buf);
@@ -76,9 +88,9 @@ for (const dir of DENSITIES) {
   const adaptive = ADAPTIVE[dir];
   const legacy = LEGACY[dir];
   await writeSolid(dir, "ic_launcher_background.png", adaptive, BG);
-  await writeLauncherArt(dir, "ic_launcher_foreground.png", adaptive);
-  await writeLauncherArt(dir, "ic_launcher.png", legacy);
-  await writeLauncherArt(dir, "ic_launcher_round.png", legacy);
+  await writeLauncherArt(dir, "ic_launcher_foreground.png", adaptive, SAFE_ZONE);
+  await writeLauncherArt(dir, "ic_launcher.png", legacy, LEGACY_SCALE);
+  await writeLauncherArt(dir, "ic_launcher_round.png", legacy, LEGACY_SCALE);
 }
 
-console.log("Generated Android mipmap launcher PNGs (full art) in", resRoot);
+console.log("Generated Android mipmap launcher PNGs (safe zone) in", resRoot);

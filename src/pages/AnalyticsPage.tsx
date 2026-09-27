@@ -11,6 +11,7 @@ import { getWeekKey, priorWeekKey, classifyWeek } from "../lib/week";
 import { comboLabel, comboMultiplier } from "../lib/combo";
 import { PageTransition } from "../components/ui/PageTransition";
 import { RecommendationsStrip } from "../components/home/RecommendationsStrip";
+import { StudyStreakCalendar } from "../components/analytics/StudyStreakCalendar";
 
 export function AnalyticsPage() {
   const { user, hasUnlock, updateUser } = useStudyGrind();
@@ -118,6 +119,8 @@ export function AnalyticsPage() {
           </article>
         ))}
       </section>
+
+      <StudyStreakCalendar history={user.weeklyHistory} sessionLog={user.sessionLog} />
 
       <section className="card">
         <h4>{chartDays}-day focus</h4>

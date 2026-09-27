@@ -21,6 +21,7 @@ import { ThemeStudioPage } from "./pages/ThemeStudioPage";
 import { OwnerSettingsPage } from "./pages/OwnerSettingsPage";
 import { MaintenancePage } from "./pages/MaintenancePage";
 import { AchievementsPage } from "./pages/AchievementsPage";
+import { AccessibilityPage } from "./pages/AccessibilityPage";
 
 function AppRoutes() {
   const { store, user, tab, setTab, hasUnlock, setToast, maintenance } = useStudyGrind();
@@ -90,6 +91,9 @@ function AppRoutes() {
       break;
     case "achievements":
       page = <AchievementsPage />;
+      break;
+    case "accessibility":
+      page = <AccessibilityPage />;
       break;
   }
 

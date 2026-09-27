@@ -1,4 +1,5 @@
-import { Bell, Lock, LogOut, Moon, Palette, RotateCcw, Share2, ShieldCheck, Vibrate, Volume2 } from "lucide-react";
+import { useRef } from "react";
+import { Accessibility, Bell, Database, Lock, LogOut, Moon, Palette, RotateCcw, Share2, ShieldCheck, Vibrate, Volume2 } from "lucide-react";
 import { Share } from "@capacitor/share";
 import { useStudyGrind } from "../context/StudyGrindContext";
 import { STUDYGRIND_APK_DOWNLOAD_URL } from "../data/constants";
@@ -10,6 +11,7 @@ import { ACCENT_AUTO_ID, ACCENT_PRESETS, ACCENT_THEME_ID, autoAccentForHour } fr
 import { themeAppearance } from "../data/themes";
 import { PageTransition } from "../components/ui/PageTransition";
 import { PressableButton } from "../components/ui/PressableButton";
+import { downloadBackup, readBackupFile } from "../lib/backup";
 
 function Row({
   icon,
@@ -92,6 +94,7 @@ function AccentSwatch({
 
 export function SettingsPage() {
   const { user, updateUser, setStore, setToast, goTab, store } = useStudyGrind();
+  const importRef = useRef<HTMLInputElement>(null);
   if (!user) return null;
 
   const isOwner = user.role === "owner";
@@ -282,6 +285,53 @@ export function SettingsPage() {
       </section>
 
       <section className="card">
+        <h4>Accessibility</h4>
+        <p className="soft">Motion, text size, contrast, touch targets, and haptics.</p>
+        <PressableButton onClick={() => goTab("accessibility")}>
+          <Accessibility size={16} /> Open accessibility
+        </PressableButton>
+      </section>
+
+      <section className="card">
+        <h4>
+          <Database size={16} /> Data
+        </h4>
+        <p className="soft">Export or restore your local StudyGrind progress on this device.</p>
+        <div className="row wrap">
+          <PressableButton
+            onClick={() => {
+              downloadBackup(store);
+              setToast("Backup downloaded.");
+            }}
+          >
+            Export backup
+          </PressableButton>
+          <PressableButton variant="ghost" onClick={() => importRef.current?.click()}>
+            Import backup
+          </PressableButton>
+          <input
+            ref={importRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              if (!window.confirm("Import replaces all local progress on this device. Continue?")) return;
+              try {
+                const payload = await readBackupFile(file);
+                setStore({ ...payload.store, current: user.email });
+                setToast("Backup restored.");
+              } catch {
+                setToast("Could not import backup.");
+              }
+            }}
+          />
+        </div>
+      </section>
+
+      <section className="card">
         <h4>Share</h4>
         <p className="soft">Invite cousins and friends to StudyGrind via WhatsApp, Messages, or any app.</p>
         <PressableButton onClick={() => void inviteFriends()}>
@@ -327,7 +377,7 @@ export function SettingsPage() {
           Signed in as <b>{user.username}</b>
           {user.role !== "user" ? ` · ${user.role}` : ""}
         </p>
-        <p className="soft settings-version">StudyGrind v11.3.7</p>
+        <p className="soft settings-version">StudyGrind v12.0.0</p>
       </section>
     </PageTransition>
   );

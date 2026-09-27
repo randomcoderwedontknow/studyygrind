@@ -13,7 +13,8 @@ export type Tab =
   | "focusLab"
   | "themeStudio"
   | "ownerSettings"
-  | "achievements";
+  | "achievements"
+  | "accessibility";
 
 export type ThemeId =
   | "green"
@@ -192,7 +193,29 @@ export type FocusLabStats = {
 
 export type MiniGameStats = Record<string, { plays: number; bestScore: number; pointsEarned: number }>;
 
-export type FlashcardStats = { cardsReviewed: number; decksMastered: number; sessions: number };
+export type FlashcardStats = {
+  cardsReviewed: number;
+  decksMastered: number;
+  sessions: number;
+  examSessions?: number;
+};
+
+export type Exam = {
+  id: string;
+  title: string;
+  subject?: string;
+  examDate: string;
+  targetMinutesPerDay?: number;
+  linkedTaskId?: string;
+};
+
+export type AccessibilityPrefs = {
+  reduceMotion: boolean;
+  textScale: "default" | "large" | "xl";
+  highContrast: boolean;
+  largeTargets: boolean;
+  hapticLevel: "off" | "light" | "normal";
+};
 
 export type SavedCustomTheme = {
   id: string;
@@ -359,6 +382,11 @@ export type UserData = {
   dailyQuestClaimed: boolean;
   /** Pinned shop items (max 8). */
   shopWishlist: WishlistEntry[];
+  exams: Exam[];
+  selectedExamId: string;
+  accessibility: AccessibilityPrefs;
+  seenReleaseVersion: string;
+  dailyDealPurchasedKey: string;
 };
 
 export type AppStore = {

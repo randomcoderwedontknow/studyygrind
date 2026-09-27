@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ShoppingBag, Sparkles } from "lucide-react";
 import { EquipButton } from "../components/shop/EquipButton";
 import { WishlistStrip } from "../components/shop/WishlistCard";
+import { DailyDealCard } from "../components/home/DailyDealCard";
 import { useStudyGrind } from "../context/StudyGrindContext";
 import { themes, themeAppearance, vipThemes, honoraryThemes } from "../data/themes";
 import {
@@ -375,7 +376,12 @@ export function ShopPage() {
         <HorizontalTabBar tabs={shopTabs} active={category} onChange={setCategory} ariaLabel="Shop categories" />
       </section>
 
-      {category === "daily" && renderDaily()}
+      {category === "daily" && (
+        <>
+          <DailyDealCard />
+          {renderDaily()}
+        </>
+      )}
       {category === "owned" && renderOwned()}
 
       {(category === "daily" || category === "all") && (

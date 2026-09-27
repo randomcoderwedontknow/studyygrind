@@ -120,18 +120,28 @@ export function TimerPage() {
 
   return (
     <PageTransition stagger>
-      <section className={`card timer-card timer-phase-${timer.phase} ${glowOn ? "timer-glow-ready" : ""}`}>
+      <section className={`card timer-card liquid-timer timer-phase-${timer.phase} ${glowOn ? "timer-glow-ready" : ""}`}>
+        <div className="timer-liquid-backdrop" aria-hidden="true">
+          <div className="timer-blob b1" />
+          <div className="timer-blob b2" />
+        </div>
         <div className="row timer-head">
           <span className="pill">{timer.phase === "focus" ? "Focus" : "Break"} · {timer.running ? "Running" : "Paused"}</span>
           <span className="pill points-pill">+{timer.pendingPoints} pts pending</span>
         </div>
 
-        <div className={`timer-ring-wrap ${timer.running ? "pulse" : ""}`}>
+        <div
+          className={`timer-ring-wrap liquid-ring ${timer.running ? "pulse" : ""} ${timer.phase === "focus" && timer.secondsLeft <= 60 && timer.running ? "pulse-last-minute" : ""}`}
+          role="timer"
+          aria-live="polite"
+          aria-label={`${timer.phase} timer ${Math.floor(timer.secondsLeft / 60)} minutes ${timer.secondsLeft % 60} seconds remaining`}
+        >
           <svg className="timer-ring" viewBox="0 0 280 280" aria-hidden="true">
             <defs>
               <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="var(--primary)" />
-                <stop offset="100%" stopColor="var(--primary-2, var(--primary))" />
+                <stop offset="45%" stopColor="var(--primary-2, var(--primary))" />
+                <stop offset="100%" stopColor="color-mix(in srgb, var(--primary) 70%, white)" />
               </linearGradient>
             </defs>
             <circle className="ring-track" cx="140" cy="140" r={ringRadius} />
@@ -157,7 +167,7 @@ export function TimerPage() {
 
         {timer.breakMessage && <p className="break timer-break-msg">{timer.breakMessage}</p>}
 
-        <div className="timer-controls">
+        <div className="timer-controls liquid-controls">
           <PressableButton variant="ghost" className="icon-btn timer-side-btn" onClick={() => setShowNote((p) => !p)} aria-label="Quick note">
             <StickyNote size={18} />
           </PressableButton>

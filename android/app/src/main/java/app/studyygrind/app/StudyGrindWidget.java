@@ -6,12 +6,9 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.widget.RemoteViews;
-
-import org.json.JSONObject;
 
 /**
  * 2x2 "Focus" home-screen widget: today's focus minutes, streak and points, plus a
@@ -62,19 +59,32 @@ public class StudyGrindWidget extends AppWidgetProvider {
     }
 
     static void updateWidget(Context context, AppWidgetManager mgr, int appWidgetId) {
-        WidgetData data = readData(context);
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_focus);
+        WidgetHelper.WidgetData data = WidgetHelper.readData(context);
+        int size = WidgetHelper.widgetSize(mgr, appWidgetId);
+        int layout =
+                size == WidgetHelper.SIZE_SMALL
+                        ? R.layout.widget_focus_small
+                        : size == WidgetHelper.SIZE_LARGE
+                                ? R.layout.widget_focus_large
+                                : R.layout.widget_focus;
+        RemoteViews views = new RemoteViews(context.getPackageName(), layout);
 
         views.setTextViewText(R.id.widget_minutes, String.valueOf(data.todayMinutes));
-        views.setTextViewText(R.id.widget_streak, data.streak + "d");
-        views.setTextViewText(R.id.widget_points, formatPoints(data.points));
-        views.setTextViewText(
-                R.id.widget_name,
-                data.username.isEmpty() ? context.getString(R.string.app_name) : data.username);
+        if (layout != R.layout.widget_focus_small) {
+            if (layout == R.layout.widget_focus_large) {
+                views.setTextViewText(R.id.widget_streak, data.streak + "d streak");
+                views.setTextViewText(R.id.widget_points, formatPoints(data.points) + " pts");
+            } else {
+                views.setTextViewText(R.id.widget_streak, data.streak + "d");
+                views.setTextViewText(R.id.widget_points, formatPoints(data.points));
+            }
+            views.setTextViewText(
+                    R.id.widget_name,
+                    data.username.isEmpty() ? context.getString(R.string.app_name) : data.username);
+            views.setOnClickPendingIntent(R.id.widget_start, deepLink(context, DEEP_LINK_TIMER, 2));
+        }
 
-        // Whole card opens the app on Home; the button opens the timer.
         views.setOnClickPendingIntent(R.id.widget_root, deepLink(context, DEEP_LINK_HOME, 1));
-        views.setOnClickPendingIntent(R.id.widget_start, deepLink(context, DEEP_LINK_TIMER, 2));
 
         mgr.updateAppWidget(appWidgetId, views);
     }
@@ -97,38 +107,4 @@ public class StudyGrindWidget extends AppWidgetProvider {
         return String.valueOf(points);
     }
 
-    static WidgetData readData(Context context) {
-        String raw = readRaw(context, PREFS_GROUP);
-        if (raw == null) raw = readRaw(context, PREFS_GROUP_FALLBACK);
-        WidgetData d = new WidgetData();
-        if (raw == null) return d;
-        try {
-            JSONObject o = new JSONObject(raw);
-            d.todayMinutes = o.optInt("todayMinutes", 0);
-            d.streak = o.optInt("streak", 0);
-            d.points = o.optLong("points", 0L);
-            d.username = o.optString("username", "");
-            d.updatedAt = o.optString("updatedAt", "");
-        } catch (Exception ignored) {
-            // malformed payload → zeros
-        }
-        return d;
-    }
-
-    private static String readRaw(Context context, String group) {
-        try {
-            SharedPreferences prefs = context.getSharedPreferences(group, Context.MODE_PRIVATE);
-            return prefs.getString(DATA_KEY, null);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    static final class WidgetData {
-        int todayMinutes = 0;
-        int streak = 0;
-        long points = 0L;
-        String username = "";
-        String updatedAt = "";
-    }
 }

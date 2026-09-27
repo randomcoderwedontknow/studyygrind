@@ -15,7 +15,7 @@ public class WidgetBridgePlugin extends Plugin {
     @PluginMethod
     public void refresh(PluginCall call) {
         try {
-            StudyGrindWidget.refreshAll(getContext());
+            WidgetHelper.refreshAll(getContext());
             call.resolve();
         } catch (Exception e) {
             call.reject("Widget refresh failed", e);

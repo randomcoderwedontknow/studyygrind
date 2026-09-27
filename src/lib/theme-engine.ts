@@ -4,6 +4,14 @@ import { resolveAccent } from "../data/accent-presets";
 
 export type AppliedAppearance = { color: string; color2?: string; gradient: boolean };
 
+function applyLiquidCompanionVars(color: string, color2?: string) {
+  const c2 = color2 ?? color;
+  document.body.style.setProperty("--liquid-highlight", `color-mix(in srgb, ${color} 22%, white)`);
+  document.body.style.setProperty("--liquid-shadow", `color-mix(in srgb, ${color} 22%, transparent)`);
+  document.body.style.setProperty("--liquid-mesh-a", `color-mix(in srgb, ${color} 12%, var(--bg))`);
+  document.body.style.setProperty("--liquid-mesh-b", `color-mix(in srgb, ${c2} 10%, var(--bg))`);
+}
+
 /**
  * Applies the equipped theme to <body>, then (if `accentPreset` is not "theme")
  * overrides --primary / --primary-2 / --accent-fill with the dynamic accent.
@@ -50,8 +58,10 @@ export function applyThemeToDocument(
     document.body.style.setProperty("--accent-fill", grad);
     document.body.style.setProperty("--theme-gradient", grad);
     document.body.dataset.accent = accent.id;
+    applyLiquidCompanionVars(accent.primary, accent.primary2);
     return { color: accent.primary, color2: accent.primary2, gradient: true };
   }
   delete document.body.dataset.accent;
+  applyLiquidCompanionVars(t.color, t.color2 ?? t.color);
   return { color: t.color, color2: t.color2, gradient: hasGradient };
 }

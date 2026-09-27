@@ -23,7 +23,7 @@ export function BottomNav() {
   const moreActive = menuOpen || !PRIMARY_TABS.has(tab);
 
   return (
-    <nav className="bottom-nav" aria-label="Primary">
+    <nav className="bottom-nav liquid-nav" aria-label="Primary">
       {ITEMS.map((item) => {
         const isCenter = item.id === "timer";
         const active = item.id === "more" ? moreActive : tab === item.id && !menuOpen;

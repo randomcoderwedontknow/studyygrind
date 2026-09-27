@@ -1,0 +1,239 @@
+/* StudyGrind 12 — liquid-lite surfaces (no backdrop-filter on Android) */
+
+:root {
+  --r-xl: 28px;
+  --liquid-highlight: color-mix(in srgb, var(--primary) 22%, white);
+  --liquid-shadow: color-mix(in srgb, var(--primary) 18%, transparent);
+  --liquid-mesh-a: color-mix(in srgb, var(--primary) 12%, var(--bg));
+  --liquid-mesh-b: color-mix(in srgb, var(--primary-2, var(--primary)) 10%, var(--bg));
+  --fs-scale: 1;
+  --exam-accent: #8b5cf6;
+  --exam-accent-2: #a78bfa;
+}
+
+body[data-mode="dark"] {
+  --liquid-highlight: color-mix(in srgb, var(--primary) 28%, #1a2420);
+}
+
+.app.liquid-app {
+  background:
+    radial-gradient(ellipse 120% 80% at 10% -10%, var(--liquid-mesh-a), transparent 55%),
+    radial-gradient(ellipse 90% 70% at 100% 20%, var(--liquid-mesh-b), transparent 50%),
+    var(--bg);
+}
+
+.app.liquid-app::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--primary) 8%, transparent), transparent 40%),
+    radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--primary-2, var(--primary)) 6%, transparent), transparent 45%);
+  animation: liquidMeshDrift 28s ease-in-out infinite alternate;
+  opacity: 0.85;
+}
+
+body.a11y-reduce-motion .app.liquid-app::before {
+  animation: none;
+}
+
+@keyframes liquidMeshDrift {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(-2%, 1.5%) scale(1.03); }
+}
+
+.card,
+.hero-panel {
+  border-radius: var(--r-lg);
+  border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--border));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--surface) 94%, var(--liquid-highlight)), var(--surface));
+  box-shadow: var(--sh-1), inset 0 1px 0 color-mix(in srgb, white 28%, transparent);
+}
+
+body[data-mode="dark"] .card,
+body[data-mode="dark"] .hero-panel {
+  box-shadow: var(--sh-1), inset 0 1px 0 color-mix(in srgb, white 6%, transparent);
+}
+
+.liquid-surface,
+.card.liquid-surface {
+  position: relative;
+  border-radius: var(--r-lg);
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--surface) 92%, var(--liquid-highlight)), var(--surface));
+  box-shadow:
+    var(--sh-1),
+    inset 0 1px 0 color-mix(in srgb, white 35%, transparent);
+}
+
+body[data-mode="dark"] .liquid-surface,
+body[data-mode="dark"] .card.liquid-surface {
+  box-shadow: var(--sh-1), inset 0 1px 0 color-mix(in srgb, white 8%, transparent);
+}
+
+.liquid-nav.bottom-nav {
+  border-top: 1px solid color-mix(in srgb, var(--primary) 15%, var(--border));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, var(--liquid-mesh-a)), var(--surface));
+}
+
+.topbar.liquid-topbar {
+  background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface) 94%, var(--liquid-mesh-a)));
+  border-bottom-color: color-mix(in srgb, var(--primary) 12%, var(--border));
+}
+
+body.a11y-high-contrast .liquid-surface,
+body.a11y-high-contrast .card {
+  border-width: 2px;
+  border-color: var(--text);
+}
+
+body.a11y-large-text { --fs-scale: 1.08; font-size: calc(1rem * var(--fs-scale)); }
+body.a11y-xl-text { --fs-scale: 1.16; font-size: calc(1rem * var(--fs-scale)); }
+body.a11y-large-targets .bottom-nav button,
+body.a11y-large-targets .pressable-btn { min-height: 52px; min-width: 52px; }
+
+/* Liquid timer */
+.timer-card.liquid-timer {
+  overflow: hidden;
+  border-radius: var(--r-xl);
+}
+
+.timer-liquid-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.timer-blob {
+  position: absolute;
+  width: 55%;
+  height: 55%;
+  border-radius: 50%;
+  filter: blur(0);
+  opacity: 0.35;
+  background: radial-gradient(circle, color-mix(in srgb, var(--primary) 50%, transparent), transparent 70%);
+  animation: timerBlobFloat 12s ease-in-out infinite;
+}
+
+.timer-blob.b2 {
+  right: -10%;
+  bottom: -15%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--primary-2, var(--primary)) 45%, transparent), transparent 70%);
+  animation-delay: -4s;
+  animation-duration: 16s;
+}
+
+body.a11y-reduce-motion .timer-blob { animation: none; opacity: 0.2; }
+
+@keyframes timerBlobFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(6%, -4%) scale(1.08); }
+}
+
+.timer-ring-wrap.liquid-ring {
+  position: relative;
+  z-index: 1;
+}
+
+.timer-ring-wrap.liquid-ring .ring-progress {
+  filter: drop-shadow(0 0 8px var(--liquid-shadow));
+  transition: stroke-dashoffset 0.35s var(--ease-out);
+}
+
+.timer-ring-wrap.liquid-ring.pulse-last-minute {
+  animation: liquidRingPulse 1.2s ease-in-out infinite;
+}
+
+body.a11y-reduce-motion .timer-ring-wrap.liquid-ring.pulse-last-minute {
+  animation: none;
+}
+
+@keyframes liquidRingPulse {
+  0%, 100% { filter: drop-shadow(0 0 6px var(--liquid-shadow)); }
+  50% { filter: drop-shadow(0 0 16px color-mix(in srgb, var(--primary) 55%, transparent)); }
+}
+
+.timer-controls.liquid-controls .timer-main-btn {
+  border-radius: var(--r-pill);
+  background: var(--accent-fill, var(--primary));
+  box-shadow: 0 8px 24px -8px var(--liquid-shadow);
+}
+
+/* Exam mode flashcards */
+.exam-mode-shell {
+  --primary: var(--exam-accent);
+  --primary-2: var(--exam-accent-2);
+  --accent-fill: linear-gradient(135deg, var(--exam-accent), var(--exam-accent-2));
+  border: 2px solid color-mix(in srgb, var(--exam-accent) 45%, var(--border));
+  background: linear-gradient(160deg, color-mix(in srgb, var(--exam-accent) 12%, var(--surface)), var(--surface));
+}
+
+.study-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.study-cal-cell {
+  aspect-ratio: 1;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-xs);
+  background: var(--surface-2);
+  position: relative;
+}
+
+.study-cal-cell.on-fire {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--warning) 25%, var(--surface)), var(--surface-2));
+  border-color: color-mix(in srgb, var(--warning) 40%, var(--border));
+}
+
+.study-cal-fire {
+  color: #f97316;
+  line-height: 1;
+}
+
+body.a11y-reduce-motion .study-cal-fire { animation: none; }
+
+.daily-deal-card {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 18%, var(--surface)), var(--surface));
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+}
+
+.voice-mic-btn.recording {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 35%, transparent);
+  animation: micPulse 1s ease infinite;
+}
+
+body.a11y-reduce-motion .voice-mic-btn.recording { animation: none; }
+
+@keyframes micPulse {
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--danger) 20%, transparent); }
+}
+
+.theme-liquid-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+  margin: var(--sp-3) 0;
+}
+
+.theme-liquid-preview .liquid-surface.mini-card {
+  padding: var(--sp-3);
+  min-height: 72px;
+}
+
+.floating-mini-timer.liquid-surface {
+  border-radius: var(--r-pill);
+  padding: 4px 6px;
+  box-shadow: var(--sh-2);
+}

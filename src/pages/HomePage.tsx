@@ -24,6 +24,7 @@ import { WeeklyChallengeCard } from "../components/weekly/WeeklyChallengeCard";
 import { TodaySection } from "../components/home/TodaySection";
 import { RecommendationsStrip } from "../components/home/RecommendationsStrip";
 import { DailyQuestCard } from "../components/home/DailyQuestCard";
+import { DailyDealCard } from "../components/home/DailyDealCard";
 import { WishlistStrip } from "../components/shop/WishlistCard";
 import { PageTransition } from "../components/ui/PageTransition";
 import { PressableButton } from "../components/ui/PressableButton";
@@ -120,6 +121,7 @@ export function HomePage() {
       )}
 
       <DailyQuestCard />
+      <DailyDealCard />
       <WishlistStrip compact />
 
       {shouldShowRecapNotice(user) && (

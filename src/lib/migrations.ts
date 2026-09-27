@@ -6,7 +6,7 @@ import { getWeekKey } from "./week";
 import { normalizeDateKey, isTodayKey, todayKey } from "./dates";
 import { backfillTrophies } from "./trophies";
 import { pickDailyQuest } from "../data/daily-quests";
-import type { AppStore, DeckCard, Note, OnboardingProfile, Tab, Task, UserData } from "../types";
+import type { AppStore, DeckCard, Exam, Note, OnboardingProfile, Tab, Task, UserData } from "../types";
 
 const DEFAULT_ONBOARDING_DRAFT: OnboardingProfile = {
   displayName: "",
@@ -218,6 +218,17 @@ export function defaultUser(email: string, password: string, username: string): 
     dailyQuestId: "",
     dailyQuestClaimed: false,
     shopWishlist: [],
+    exams: [],
+    selectedExamId: "",
+    accessibility: {
+      reduceMotion: false,
+      textScale: "default",
+      highContrast: false,
+      largeTargets: false,
+      hapticLevel: "normal",
+    },
+    seenReleaseVersion: "",
+    dailyDealPurchasedKey: "",
     dataVersion: DATA_VERSION,
   };
 }
@@ -405,6 +416,26 @@ export function migrateUser(k: string, v: Partial<UserData>): UserData {
     dailyQuestId: v.dailyQuestId ?? "",
     dailyQuestClaimed: v.dailyQuestClaimed ?? false,
     shopWishlist: (v.shopWishlist ?? []).slice(0, 8),
+    exams: Array.isArray(v.exams)
+      ? (v.exams as Exam[]).map((e) => ({
+          id: e.id ?? crypto.randomUUID(),
+          title: e.title ?? "Exam",
+          subject: e.subject,
+          examDate: e.examDate ?? "",
+          targetMinutesPerDay: e.targetMinutesPerDay ?? 45,
+          linkedTaskId: e.linkedTaskId,
+        }))
+      : [],
+    selectedExamId: typeof v.selectedExamId === "string" ? v.selectedExamId : "",
+    accessibility: {
+      reduceMotion: v.accessibility?.reduceMotion ?? false,
+      textScale: v.accessibility?.textScale ?? "default",
+      highContrast: v.accessibility?.highContrast ?? false,
+      largeTargets: v.accessibility?.largeTargets ?? false,
+      hapticLevel: v.accessibility?.hapticLevel ?? "normal",
+    },
+    seenReleaseVersion: typeof v.seenReleaseVersion === "string" ? v.seenReleaseVersion : "",
+    dailyDealPurchasedKey: typeof v.dailyDealPurchasedKey === "string" ? v.dailyDealPurchasedKey : "",
     lastStudyDate: normalizeDateKey(v.lastStudyDate ?? ""),
     lastActiveDate: normalizeDateKey(v.lastActiveDate ?? ""),
     streakShields,
@@ -487,4 +518,5 @@ export const TAB_META: Record<Tab, { label: string; description: string }> = {
   themeStudio: { label: "Theme Studio", description: "Custom colours and appearance." },
   ownerSettings: { label: "Owner Settings", description: "Owner admin tools." },
   achievements: { label: "Achievements", description: "Trophies, milestones, and weekly titles." },
+  accessibility: { label: "Accessibility", description: "Motion, text, contrast, and touch." },
 };

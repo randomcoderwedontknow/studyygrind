@@ -35,6 +35,11 @@ export type WidgetData = {
   points: number;
   username: string;
   updatedAt: string;
+  nextTaskTitle: string;
+  nextTaskId: string;
+  timerRunning: boolean;
+  timerSecondsLeft: number;
+  focusDurationMin: number;
 };
 
 type WidgetBridgePlugin = {
@@ -45,14 +50,23 @@ const WidgetBridge = registerPlugin<WidgetBridgePlugin>("WidgetBridge", {
   web: () => Promise.resolve({ refresh: async () => {} }),
 });
 
-export function buildWidgetData(user: UserData): WidgetData {
+export function buildWidgetData(
+  user: UserData,
+  timer?: { running: boolean; secondsLeft: number } | null,
+): WidgetData {
   const todayKey = new Date().toISOString().slice(0, 10);
+  const next = user.tasks.find((t) => t.status !== "done");
   return {
     todayMinutes: user.weeklyHistory?.[todayKey] ?? 0,
     streak: user.streak ?? 0,
     points: user.focusPoints ?? 0,
     username: user.username ?? "",
     updatedAt: new Date().toISOString(),
+    nextTaskTitle: next?.title ?? "",
+    nextTaskId: next?.id ?? "",
+    timerRunning: timer?.running ?? false,
+    timerSecondsLeft: timer?.secondsLeft ?? 0,
+    focusDurationMin: user.focusDurationMin ?? 25,
   };
 }
 
@@ -65,11 +79,14 @@ export async function refreshWidgets(): Promise<void> {
   }
 }
 
-export async function syncWidgetData(user: UserData): Promise<void> {
+export async function syncWidgetData(
+  user: UserData,
+  timer?: { running: boolean; secondsLeft: number } | null,
+): Promise<void> {
   if (!isAndroid) return;
   try {
     await ensureConfigured();
-    await Preferences.set({ key: WIDGET_DATA_KEY, value: JSON.stringify(buildWidgetData(user)) });
+    await Preferences.set({ key: WIDGET_DATA_KEY, value: JSON.stringify(buildWidgetData(user, timer)) });
     await refreshWidgets();
   } catch (err) {
     console.warn("[StudyGrind] widget sync failed:", err);

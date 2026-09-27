@@ -11,14 +11,14 @@ export type ThemeMeta = {
 };
 
 export const themes: Record<ThemeId, ThemeMeta> = {
-  green: { name: "StudyGrind Green", price: 0, color: "#31be83", tier: "core" },
-  midnight: { name: "Midnight Indigo", price: 700, color: "#5b6cf2", tier: "core" },
-  slate: { name: "Slate Steel", price: 800, color: "#64748b", tier: "core" },
-  forest: { name: "Forest Sage", price: 900, color: "#4a8d6d", tier: "core" },
-  lavender: { name: "Lavender Dream", price: 1_000, color: "#a583e0", tier: "core" },
-  rose: { name: "Rose Quartz", price: 1_000, color: "#e07a8a", tier: "core" },
-  ocean: { name: "Ocean Blue", price: 1_500, color: "#2d9ce2", tier: "premium" },
-  sunset: { name: "Sunset Ember", price: 1_900, color: "#e08145", tier: "premium" },
+  green: { name: "StudyGrind Green", price: 0, color: "#31be83", color2: "#163d2a", gradient: true, tier: "core" },
+  midnight: { name: "Midnight Indigo", price: 700, color: "#5b6cf2", color2: "#312e81", gradient: true, tier: "core" },
+  slate: { name: "Slate Steel", price: 800, color: "#64748b", color2: "#334155", gradient: true, tier: "core" },
+  forest: { name: "Forest Sage", price: 900, color: "#4a8d6d", color2: "#163d2a", gradient: true, tier: "core" },
+  lavender: { name: "Lavender Dream", price: 1_000, color: "#a583e0", color2: "#6d28d9", gradient: true, tier: "core" },
+  rose: { name: "Rose Quartz", price: 1_000, color: "#e07a8a", color2: "#be185d", gradient: true, tier: "core" },
+  ocean: { name: "Ocean Blue", price: 1_500, color: "#2d9ce2", color2: "#0ea5e9", gradient: true, tier: "premium" },
+  sunset: { name: "Sunset Ember", price: 1_900, color: "#e08145", color2: "#ea580c", gradient: true, tier: "premium" },
   carbon: { name: "Carbon Black", price: 2_000, color: "#202733", tier: "premium" },
   coral: { name: "Coral Reef", price: 1_400, color: "#ff6b6b", color2: "#feca57", gradient: true, tier: "premium" },
   ember: { name: "Ember Glow", price: 1_600, color: "#ff512f", color2: "#dd2476", gradient: true, tier: "premium" },

@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
-import { Layers, NotebookPen, Pencil, Pin, PinOff, Plus, Search, Trash2 } from "lucide-react";
+import { useRef } from "react";
+import { Layers, Mic, NotebookPen, Pencil, Pin, PinOff, Plus, Search, Trash2 } from "lucide-react";
+import { startVoiceToText } from "../lib/speech-input";
 import { useStudyGrind } from "../context/StudyGrindContext";
 import { PageTransition } from "../components/ui/PageTransition";
 import { PressableButton } from "../components/ui/PressableButton";
@@ -15,6 +17,8 @@ export function NotesPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<Note | null>(null);
   const [draft, setDraft] = useState({ title: "", body: "", tags: "", folderId: "general" });
+  const [recording, setRecording] = useState(false);
+  const stopVoiceRef = useRef<(() => void) | null>(null);
 
   const notes = user?.notes ?? [];
   const folders = user?.noteFolders ?? [{ id: "general", name: "General" }];
@@ -198,7 +202,37 @@ export function NotesPage() {
           ))}
         </select>
         <input placeholder="Tags (comma separated)" value={draft.tags} onChange={(e) => setDraft({ ...draft, tags: e.target.value })} />
-        <textarea placeholder="Body (use --- between card fronts/backs when converting)" value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
+        <div className="row wrap">
+          <textarea
+            placeholder="Body (use --- between card fronts/backs when converting)"
+            value={draft.body}
+            onChange={(e) => setDraft({ ...draft, body: e.target.value })}
+            style={{ flex: 1, minWidth: "100%" }}
+          />
+          <PressableButton
+            variant="ghost"
+            className={`icon-btn voice-mic-btn ${recording ? "recording" : ""}`}
+            aria-label={recording ? "Stop voice input" : "Voice to text"}
+            onClick={async () => {
+              if (recording) {
+                stopVoiceRef.current?.();
+                stopVoiceRef.current = null;
+                setRecording(false);
+                return;
+              }
+              setRecording(true);
+              stopVoiceRef.current = await startVoiceToText(
+                (text) => setDraft((d) => ({ ...d, body: d.body ? `${d.body.trim()}\n${text}` : text })),
+                (msg) => {
+                  setToast(msg);
+                  setRecording(false);
+                },
+              );
+            }}
+          >
+            <Mic size={18} />
+          </PressableButton>
+        </div>
       </Modal>
     </PageTransition>
   );

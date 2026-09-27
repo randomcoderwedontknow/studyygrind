@@ -8,9 +8,16 @@
 
     <!-- Home-screen widget -->
     <string name="widget_name">StudyGrind Focus</string>
+    <string name="widget_name_focus">Focus today</string>
+    <string name="widget_name_streak">Streak flame</string>
+    <string name="widget_name_task">Next task</string>
+    <string name="widget_name_quick">Quick timer</string>
     <string name="widget_description">Today\'s focus minutes, streak and points — tap to start a session.</string>
     <string name="widget_min_today">min today</string>
     <string name="widget_streak">Streak</string>
     <string name="widget_points">Points</string>
     <string name="widget_start_focus">Start focus</string>
+    <string name="widget_description_streak">Study streak at a glance.</string>
+    <string name="widget_description_task">Your next open task.</string>
+    <string name="widget_description_quick">Start focus or see the running timer.</string>
 </resources>

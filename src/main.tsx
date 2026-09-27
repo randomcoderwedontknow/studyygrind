@@ -10,6 +10,7 @@ import "./styles/pages.css";
 import "./styles/motion.css";
 import "./styles/web.css";
 import "./styles/android.css";
+import "./styles/liquid.css";
 import { hideSplash, isAndroid, isNative } from "./lib/native";
 
 if (isNative) document.body.classList.add("platform-native");

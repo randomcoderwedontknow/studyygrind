@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowRight, CheckSquare, Pencil, Play, Plus, Search } from "lucide-react";
+import { ArrowRight, CalendarClock, CheckSquare, Pencil, Play, Plus, Search } from "lucide-react";
 import { useStudyGrind } from "../context/StudyGrindContext";
 import { isAndroid } from "../lib/native";
 import { PageTransition } from "../components/ui/PageTransition";
@@ -7,7 +7,7 @@ import { PressableButton } from "../components/ui/PressableButton";
 import { Modal } from "../components/ui/Modal";
 import { EmptyState } from "../components/ui/EmptyState";
 import { HorizontalTabBar } from "../components/ui/HorizontalTabBar";
-import type { Task, TaskPriority, TaskStatus } from "../types";
+import type { Exam, Task, TaskPriority, TaskStatus } from "../types";
 
 const PR: Record<TaskPriority, number> = { High: 0, Medium: 1, Low: 2 };
 const COLUMNS: TaskStatus[] = ["todo", "doing", "done"];
@@ -19,6 +19,8 @@ export function TasksPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [mobileCol, setMobileCol] = useState<TaskStatus>("todo");
   const [modalOpen, setModalOpen] = useState(false);
+  const [examModalOpen, setExamModalOpen] = useState(false);
+  const [examDraft, setExamDraft] = useState({ title: "", subject: "", examDate: "", targetMinutesPerDay: 45 });
   const [editingId, setEditingId] = useState("");
   const [input, setInput] = useState({
     title: "",
@@ -51,6 +53,32 @@ export function TasksPage() {
     [...filtered]
       .filter((t) => t.status === s)
       .sort((a, b) => (PR[a.priority] ?? 1) - (PR[b.priority] ?? 1));
+
+  const daysUntilExam = (date: string) => {
+    const end = new Date(date + "T23:59:59").getTime();
+    return Math.max(0, Math.ceil((end - Date.now()) / 86400000));
+  };
+
+  const saveExam = () => {
+    if (!examDraft.title.trim() || !examDraft.examDate) return;
+    const exam: Exam = {
+      id: crypto.randomUUID(),
+      title: examDraft.title.trim(),
+      subject: examDraft.subject.trim() || undefined,
+      examDate: examDraft.examDate,
+      targetMinutesPerDay: examDraft.targetMinutesPerDay,
+    };
+    updateUser({ ...user, exams: [...(user.exams ?? []), exam] });
+    setExamModalOpen(false);
+    setExamDraft({ title: "", subject: "", examDate: "", targetMinutesPerDay: 45 });
+    setToast("Exam added.");
+  };
+
+  const studyForExam = (exam: Exam) => {
+    updateUser({ ...user, selectedExamId: exam.id, focusDurationMin: exam.targetMinutesPerDay ?? 45 });
+    if (exam.linkedTaskId) setSelectedTaskId(exam.linkedTaskId);
+    goTab("timer");
+  };
 
   const openNew = () => {
     setEditingId("");
@@ -214,15 +242,20 @@ export function TasksPage() {
   return (
     <PageTransition stagger>
       <section className="card">
-        <div className="row">
+        <div className="row wrap">
           <h4>
             <CheckSquare size={16} /> Tasks
           </h4>
-          {!isAndroid && (
-            <PressableButton onClick={openNew}>
-              <Plus size={16} /> Add task
+          <div className="row wrap">
+            <PressableButton variant="ghost" onClick={() => setExamModalOpen(true)}>
+              <CalendarClock size={16} /> Add exam
             </PressableButton>
-          )}
+            {!isAndroid && (
+              <PressableButton onClick={openNew}>
+                <Plus size={16} /> Add task
+              </PressableButton>
+            )}
+          </div>
         </div>
         <div className="row search-row">
           <Search size={16} className="soft" />
@@ -237,6 +270,34 @@ export function TasksPage() {
           />
         )}
       </section>
+
+      {(user.exams ?? []).length > 0 && (
+        <section className="card liquid-surface">
+          <h4>
+            <CalendarClock size={16} /> Exams
+          </h4>
+          <div className="grid2">
+            {(user.exams ?? []).map((exam) => {
+              const days = daysUntilExam(exam.examDate);
+              return (
+                <article key={exam.id} className="task-card">
+                  <b>{exam.title}</b>
+                  <p className="soft">
+                    {exam.subject ? `${exam.subject} · ` : ""}
+                    {days === 0 ? "Today" : `${days} day${days === 1 ? "" : "s"} left`}
+                  </p>
+                  <small className="soft">Aim {exam.targetMinutesPerDay ?? 45}m/day</small>
+                  <div className="row wrap" style={{ marginTop: 8 }}>
+                    <PressableButton onClick={() => studyForExam(exam)}>
+                      <Play size={14} /> Study for exam
+                    </PressableButton>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {user.tasks.length === 0 ? (
         <EmptyState
@@ -273,6 +334,25 @@ export function TasksPage() {
           <Plus size={24} />
         </button>
       )}
+
+      <Modal
+        open={examModalOpen}
+        title="Add exam"
+        onClose={() => setExamModalOpen(false)}
+        footer={<PressableButton onClick={saveExam}>Save exam</PressableButton>}
+      >
+        <input placeholder="Exam name" value={examDraft.title} onChange={(e) => setExamDraft({ ...examDraft, title: e.target.value })} />
+        <input placeholder="Subject (optional)" value={examDraft.subject} onChange={(e) => setExamDraft({ ...examDraft, subject: e.target.value })} />
+        <input type="date" value={examDraft.examDate} onChange={(e) => setExamDraft({ ...examDraft, examDate: e.target.value })} aria-label="Exam date" />
+        <input
+          type="number"
+          min={15}
+          max={180}
+          value={examDraft.targetMinutesPerDay}
+          onChange={(e) => setExamDraft({ ...examDraft, targetMinutesPerDay: Number(e.target.value) || 45 })}
+          aria-label="Target minutes per day"
+        />
+      </Modal>
 
       <Modal open={modalOpen} title={editingId ? "Edit task" : "New task"} onClose={() => setModalOpen(false)} footer={<PressableButton onClick={saveTask}>Save</PressableButton>}>
         <input placeholder="Title" value={input.title} onChange={(e) => setInput({ ...input, title: e.target.value })} autoFocus />

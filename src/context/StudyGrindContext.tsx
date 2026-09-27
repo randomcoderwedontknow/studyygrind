@@ -20,12 +20,14 @@ import { applyStatusBarStyle, isAndroid, isNative, minimizeApp, onBackButton } f
 import { applyThemeToDocument } from "../lib/theme-engine";
 import { hapticSuccess, setHapticsEnabled } from "../lib/haptics";
 import { syncWidgetData } from "../lib/widget";
+import { applyAccessibilityToBody } from "../lib/accessibility-body";
 import { App as CapApp } from "@capacitor/app";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import {
   STORE_KEY,
   OWNER_EMAIL,
   OWNER_PASS,
+  APP_RELEASE_VERSION,
   GAME_POINTS_DAILY_CAP,
   MEMORY_SPRINT_ID,
   LOGIC_BURST_ID,
@@ -178,6 +180,8 @@ type Ctx = {
   maintenance: MaintenanceConfig & { remoteOk: boolean; checking: boolean };
   setMaintenanceMode: (on: boolean, message?: string) => Promise<boolean>;
   refreshMaintenance: () => Promise<void>;
+  whatsNewOpen: boolean;
+  closeWhatsNew: () => void;
 };
 
 const StudyGrindContext = createContext<Ctx | null>(null);
@@ -217,6 +221,7 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
   const [titleHubOpen, setTitleHubOpen] = useState(false);
   const [timerSnapshot, setTimerSnapshotState] = useState<TimerSnapshot | null>(null);
   const [celebrationEvent, setCelebrationEvent] = useState<CelebrationEvent | null>(null);
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const celebrationQueueRef = useRef<CelebrationEvent[]>([]);
   const celebrationShowingRef = useRef(false);
   const [maintenance, setMaintenanceState] = useState<MaintenanceConfig & { remoteOk: boolean; checking: boolean }>(() => ({
@@ -647,8 +652,21 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
 
   // Mirror the haptics preference into the stateless helper module.
   useEffect(() => {
-    setHapticsEnabled(user?.hapticsEnabled ?? true);
-  }, [user?.hapticsEnabled]);
+    const level = user?.accessibility?.hapticLevel;
+    const enabled = level !== "off" && (user?.hapticsEnabled ?? true);
+    setHapticsEnabled(enabled);
+  }, [user?.hapticsEnabled, user?.accessibility?.hapticLevel]);
+
+  useEffect(() => {
+    if (user?.accessibility) applyAccessibilityToBody(user.accessibility);
+  }, [user?.accessibility]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.seenReleaseVersion !== APP_RELEASE_VERSION) {
+      setWhatsNewOpen(true);
+    }
+  }, [user?.email, user?.seenReleaseVersion]);
 
   // Android home-screen widget: debounce-write today's stats whenever they change.
   const widgetTodayKey = new Date().toISOString().slice(0, 10);
@@ -657,10 +675,15 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
     if (!isAndroid || !user) return;
     const t = window.setTimeout(() => {
       const u = userRef.current;
-      if (u) void syncWidgetData(u);
+      const snap = timerSnapshot;
+      if (u)
+        void syncWidgetData(
+          u,
+          snap?.running ? { running: true, secondsLeft: snap.secondsLeft ?? 0 } : null,
+        );
     }, 2000);
     return () => window.clearTimeout(t);
-  }, [user?.email, user?.focusPoints, user?.streak, user?.username, widgetTodayMins]);
+  }, [user?.email, user?.focusPoints, user?.streak, user?.username, widgetTodayMins, user?.tasks, timerSnapshot?.running, timerSnapshot?.secondsLeft]);
 
   const studyRankLabel = user ? studyRankFromUser(user).label : "Starter";
   const displayTitle = useMemo(() => {
@@ -1318,6 +1341,14 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
     maintenance,
     setMaintenanceMode,
     refreshMaintenance,
+    whatsNewOpen,
+    closeWhatsNew: () => {
+      setWhatsNewOpen(false);
+      const u = userRef.current;
+      if (u && u.seenReleaseVersion !== APP_RELEASE_VERSION) {
+        updateUser({ ...u, seenReleaseVersion: APP_RELEASE_VERSION });
+      }
+    },
   };
 
   return <StudyGrindContext.Provider value={value}>{children}</StudyGrindContext.Provider>;

@@ -1,5 +1,7 @@
 export const STORE_KEY = "studygrind_v2";
-export const DATA_VERSION = 8;
+export const DATA_VERSION = 9;
+export const APP_RELEASE_VERSION = "12.0.0";
+export const STUDY_DAY_FIRE_MINUTES = 30;
 export const WEEKLY_TITLE_THRESHOLDS = [60, 180, 300, 600, 1200] as const;
 export const DAILY_SHOP_THEME_COUNT = 10;
 export const SESSION_LOG_CAP = 200;

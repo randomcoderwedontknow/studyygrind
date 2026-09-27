@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { BookOpen } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { BookOpen, GraduationCap } from "lucide-react";
 import { useStudyGrind } from "../context/StudyGrindContext";
 import { pickNextFlashCard, deckMasteryPercent, rateCard as scheduleRate, deckDueCount } from "../lib/flashcard-scheduler";
 import { PageTransition } from "../components/ui/PageTransition";
@@ -13,11 +13,63 @@ export function FlashcardsPage() {
   const [flipped, setFlipped] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [cardForm, setCardForm] = useState({ q: "", a: "" });
+  const [examActive, setExamActive] = useState(false);
+  const [examMinutes, setExamMinutes] = useState(10);
+  const [examSecondsLeft, setExamSecondsLeft] = useState(0);
+  const [examQueue, setExamQueue] = useState<string[]>([]);
+  const [examCorrect, setExamCorrect] = useState(0);
+  const [examTotal, setExamTotal] = useState(0);
+  const [examDone, setExamDone] = useState(false);
 
-  if (!user) return null;
-  const deck = user.decks.find((d) => d.id === studyDeckId);
+  const deck = user?.decks.find((d) => d.id === studyDeckId);
   const card = deck ? pickNextFlashCard(deck.cards, shuffle) : undefined;
   const mastery = deck ? deckMasteryPercent(deck.cards) : 0;
+  const examCard = useMemo(() => {
+    if (!deck || examQueue.length === 0) return undefined;
+    return deck.cards.find((c) => c.id === examQueue[0]);
+  }, [deck, examQueue]);
+
+  useEffect(() => {
+    if (!examActive || examSecondsLeft <= 0) return;
+    const t = window.setInterval(() => setExamSecondsLeft((s) => s - 1), 1000);
+    return () => window.clearInterval(t);
+  }, [examActive, examSecondsLeft]);
+
+  useEffect(() => {
+    const u = user;
+    if (!u || !examActive || examSecondsLeft > 0) return;
+    setExamActive(false);
+    setExamDone(true);
+    updateUser({
+      ...u,
+      flashcardStats: {
+        ...u.flashcardStats,
+        examSessions: (u.flashcardStats.examSessions ?? 0) + 1,
+      },
+    });
+  }, [user, examActive, examSecondsLeft, updateUser]);
+
+  if (!user) return null;
+
+  const startExam = () => {
+    if (!deck || deck.cards.length === 0) return;
+    const ids = deck.cards.map((c) => c.id).sort(() => Math.random() - 0.5);
+    setExamQueue(ids);
+    setExamCorrect(0);
+    setExamTotal(0);
+    setExamDone(false);
+    setExamSecondsLeft(examMinutes * 60);
+    setExamActive(true);
+    setFlipped(false);
+  };
+
+  const rateExam = (correct: boolean) => {
+    if (!examCard) return;
+    setExamTotal((n) => n + 1);
+    if (correct) setExamCorrect((n) => n + 1);
+    setExamQueue((q) => q.slice(1));
+    setFlipped(false);
+  };
 
   const handleRate = (quality: number) => {
     if (!deck || !card) return;
@@ -131,9 +183,66 @@ export function FlashcardsPage() {
             <p className="soft">
               Mastery: {mastery}% · {deck.cards.length} cards · {deckDueCount(deck.cards)} due now
             </p>
+            {!examActive && !examDone && (
+              <div className="row wrap" style={{ marginTop: 12 }}>
+                <select value={examMinutes} onChange={(e) => setExamMinutes(Number(e.target.value))} aria-label="Exam duration">
+                  <option value={5}>5 min exam</option>
+                  <option value={10}>10 min exam</option>
+                  <option value={15}>15 min exam</option>
+                </select>
+                <PressableButton onClick={startExam}>
+                  <GraduationCap size={16} /> Exam mode
+                </PressableButton>
+              </div>
+            )}
           </section>
 
-          {card ? (
+          {examDone && (
+            <section className="card exam-mode-shell">
+              <h4>Exam complete</h4>
+              <p>
+                Score: {examCorrect}/{examTotal} · {examMinutes} min session
+              </p>
+              <PressableButton onClick={() => setExamDone(false)}>Back to deck</PressableButton>
+            </section>
+          )}
+
+          {examActive && examCard ? (
+            <section className="card exam-mode-shell study-stage">
+              <div className="row">
+                <span className="pill">Exam mode</span>
+                <span className="tabular">
+                  {String(Math.floor(examSecondsLeft / 60)).padStart(2, "0")}:{String(examSecondsLeft % 60).padStart(2, "0")}
+                </span>
+              </div>
+              <div className="rank-progress-bar" aria-hidden="true">
+                <div
+                  className="rank-progress-fill"
+                  style={{ width: `${Math.max(0, (examSecondsLeft / (examMinutes * 60)) * 100)}%` }}
+                />
+              </div>
+              <div className="flashcard-flip" onClick={() => setFlipped((f) => !f)}>
+                <div className={`flashcard-inner ${flipped ? "flipped" : ""}`}>
+                  <div className="flash flashcard-face front">
+                    <b>Question</b>
+                    <p>{examCard.q}</p>
+                  </div>
+                  <div className="flash flashcard-face back">
+                    <b>Answer</b>
+                    <p>{examCard.a}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="row wrap">
+                <PressableButton onClick={() => rateExam(true)}>Correct</PressableButton>
+                <PressableButton variant="ghost" onClick={() => rateExam(false)}>
+                  Missed
+                </PressableButton>
+              </div>
+            </section>
+          ) : null}
+
+          {!examActive && !examDone && card ? (
             <section className="card study-stage">
               <div className="flashcard-flip" onClick={() => setFlipped((f) => !f)}>
                 <div className={`flashcard-inner ${flipped ? "flipped" : ""}`}>
@@ -158,9 +267,9 @@ export function FlashcardsPage() {
                 </PressableButton>
               </div>
             </section>
-          ) : (
+          ) : !examActive && !examDone ? (
             <EmptyState icon={<BookOpen size={32} />} title="Deck complete" hint="All cards marked known — add more or reset." />
-          )}
+          ) : null}
         </>
       ) : null}
     </PageTransition>

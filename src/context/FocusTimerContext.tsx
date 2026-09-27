@@ -16,6 +16,7 @@ import { SESSION_LOG_CAP } from "../data/constants";
 import { playTimerEndSound } from "../lib/timer-audio";
 import { hapticSuccess } from "../lib/haptics";
 import { setSoundscapeVolume, startSoundscape, stopSoundscape, type SoundscapeId } from "../lib/soundscapes";
+import { listenTimerNotificationActions, syncFocusTimerNotification } from "../lib/focus-timer-notification";
 import { useStudyGrind } from "./StudyGrindContext";
 import type { SessionReflection, TimerPhase, UserData } from "../types";
 
@@ -48,6 +49,7 @@ type FocusTimerCtx = {
   focusMin: number;
   breakMin: number;
   applyDurations: (f: number, b: number) => void;
+  addFiveMinutes: () => void;
   finishSession: (early: boolean, sessionMeta?: SessionMeta) => FinishSessionResult | null;
   progressRatio: number;
   moodBefore: string;
@@ -88,6 +90,7 @@ export function FocusTimerProvider({ children }: { children: ReactNode }) {
   const [focusSecondsThisSession, setFocusSecondsThisSession] = useState(0);
   const [focusBlockCompleted, setFocusBlockCompleted] = useState(false);
   const timerAnchorRef = useRef<{ startedAt: number; baseSeconds: number } | null>(null);
+  const bonusSecondsRef = useRef(0);
   const phaseRef = useRef(phase);
   const runningRef = useRef(running);
   phaseRef.current = phase;
@@ -120,6 +123,7 @@ export function FocusTimerProvider({ children }: { children: ReactNode }) {
       setBreakMessage("");
       setFocusSecondsThisSession(0);
       setFocusBlockCompleted(false);
+      bonusSecondsRef.current = 0;
       phaseRef.current = "focus";
     },
     [focusMin],
@@ -205,6 +209,42 @@ export function FocusTimerProvider({ children }: { children: ReactNode }) {
     setSoundscapeVolume(soundscapeVolume);
   }, [soundscapeVolume]);
   useEffect(() => () => stopSoundscape(), []);
+
+  const focusSecondsRef = useRef(focusSecondsThisSession);
+  focusSecondsRef.current = focusSecondsThisSession;
+
+  useEffect(() => {
+    if (phase !== "focus") {
+      void syncFocusTimerNotification(null);
+      return;
+    }
+    const engaged = running || focusSecondsRef.current > 0;
+    if (!engaged) {
+      void syncFocusTimerNotification(null);
+      return;
+    }
+    void syncFocusTimerNotification({
+      running,
+      paused: !running,
+      secondsLeft,
+      phase,
+    });
+  }, [running, secondsLeft, phase, focusSecondsThisSession]);
+
+  const addFiveMinutes = useCallback(() => {
+    if (phaseRef.current !== "focus") return;
+    const cap = 30 * 60;
+    if (bonusSecondsRef.current >= cap) {
+      setToast("Max +30 minutes added this session.");
+      return;
+    }
+    const add = Math.min(300, cap - bonusSecondsRef.current);
+    bonusSecondsRef.current += add;
+    setSecondsLeft((s) => s + add);
+    if (timerAnchorRef.current) {
+      timerAnchorRef.current.baseSeconds += add;
+    }
+  }, [setToast]);
 
   useEffect(() => {
     const handler = () => {
@@ -375,6 +415,19 @@ export function FocusTimerProvider({ children }: { children: ReactNode }) {
   const totalSeconds = phase === "focus" ? focusMin * 60 : breakMin * 60;
   const progressRatio = Math.max(0, Math.min(1, 1 - secondsLeft / Math.max(1, totalSeconds)));
 
+  const finishRef = useRef(finishSession);
+  finishRef.current = finishSession;
+
+  useEffect(() => {
+    return listenTimerNotificationActions({
+      onPauseToggle: () => setRunning(!runningRef.current),
+      onAddFive: () => addFiveMinutes(),
+      onEnd: () => {
+        finishRef.current(true);
+      },
+    });
+  }, [addFiveMinutes, setRunning]);
+
   const value: FocusTimerCtx = {
     phase,
     secondsLeft,
@@ -393,6 +446,7 @@ export function FocusTimerProvider({ children }: { children: ReactNode }) {
     focusMin,
     breakMin,
     applyDurations,
+    addFiveMinutes,
     finishSession,
     progressRatio,
     moodBefore,

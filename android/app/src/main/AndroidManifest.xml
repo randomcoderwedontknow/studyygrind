@@ -28,12 +28,35 @@
         </activity>
 
         <!-- 2x2 "Focus" home-screen widget -->
-        <receiver android:name=".StudyGrindWidget" android:label="@string/widget_name" android:exported="true">
+        <receiver android:name=".StudyGrindWidget" android:label="@string/widget_name_focus" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/studygrind_widget_info" />
         </receiver>
+
+        <receiver android:name=".StreakFlameWidget" android:label="@string/widget_name_streak" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/studygrind_widget_streak_info" />
+        </receiver>
+
+        <receiver android:name=".NextTaskWidget" android:label="@string/widget_name_task" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/studygrind_widget_task_info" />
+        </receiver>
+
+        <receiver android:name=".QuickTimerWidget" android:label="@string/widget_name_quick" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/studygrind_widget_quick_info" />
+        </receiver>
+
+        <receiver android:name=".TimerNotificationReceiver" android:exported="false" />
 
         <receiver android:name=".BootReceiver" android:exported="false">
             <intent-filter>
@@ -60,4 +83,5 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 </manifest>

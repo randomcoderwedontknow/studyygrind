@@ -11,6 +11,7 @@ public class MainActivity extends BridgeActivity {
         // Custom plugins must be registered before the bridge is created.
         registerPlugin(WidgetBridgePlugin.class);
         registerPlugin(NotificationPrefsBridge.class);
+        registerPlugin(FocusTimerNotificationPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

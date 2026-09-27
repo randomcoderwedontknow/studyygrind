@@ -56,7 +56,10 @@ export function FloatingMiniTimer() {
       };
 
   return (
-    <div className={`floating-mini-timer ${collapsed ? "collapsed" : ""} ${isAndroid ? "docked" : ""}`} {...dragProps}>
+    <div
+      className={`floating-mini-timer liquid-surface ${collapsed ? "collapsed" : ""} ${isAndroid ? "docked" : ""}`}
+      {...dragProps}
+    >
       <button
         type="button"
         className="mini-timer-body"

@@ -65,6 +65,16 @@ export function ThemeStudioPage() {
         <div className="theme-preview-strip" style={{ background: gradient ? `linear-gradient(135deg,${color},${color2})` : color }}>
           <span>Preview strip</span>
         </div>
+        <div className="theme-liquid-preview">
+          <div className="liquid-surface mini-card">
+            <small className="soft">Card</small>
+            <b>Liquid surface</b>
+          </div>
+          <div className="liquid-surface mini-card" style={{ background: gradient ? `linear-gradient(135deg,${color},${color2})` : color, color: "#fff" }}>
+            <small>Accent</small>
+            <b>Nav chip</b>
+          </div>
+        </div>
         <div className="row wrap">
           <PressableButton onClick={runPreview}>Preview</PressableButton>
           <PressableButton onClick={saveTheme}>Save & equip</PressableButton>

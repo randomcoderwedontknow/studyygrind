@@ -34,6 +34,7 @@ import { CelebrationModal } from "../rewards/CelebrationModal";
 import { NotificationsModal } from "./NotificationsModal";
 import { BottomNav } from "./BottomNav";
 import { Sidebar } from "./Sidebar";
+import { WhatsNewModal } from "../WhatsNewModal";
 
 const TAB_ICONS: Partial<Record<Tab, React.ReactNode>> = {
   home: <Home size={18} />,
@@ -90,6 +91,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     closeCelebration,
     store,
     stopImpersonating,
+    whatsNewOpen,
+    closeWhatsNew,
   } = useStudyGrind();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
@@ -132,12 +135,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pageTitle = TAB_META[tab]?.label ?? "StudyGrind";
 
   return (
-    <div className={`app ${user.ownerFlags.extraParticles ? "particle-trail" : ""}`}>
+    <div className={`app liquid-app ${user.ownerFlags.extraParticles ? "particle-trail" : ""}`}>
       <div className="app-body">
         <Sidebar tabs={MAIN_TABS} icons={TAB_ICONS} isTabLocked={isTabLocked} />
 
         <div className="app-main">
-          <header className="topbar">
+          <header className="topbar liquid-topbar">
             <div className="topbar-left">
               <button
                 type="button"
@@ -206,6 +209,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         soundEffectsEnabled={user.soundEffects}
         timerEndSoundId={user.timerEndSoundId}
       />
+
+      <WhatsNewModal open={whatsNewOpen} onClose={closeWhatsNew} />
 
       <FloatingMiniTimer />
 
