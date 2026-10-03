@@ -9,6 +9,7 @@ import {
   Crown,
   FlaskConical,
   Home,
+  ListTodo,
   LogOut,
   Lock,
   Menu,
@@ -16,7 +17,9 @@ import {
   Palette,
   Settings,
   ShoppingBag,
+  Sliders,
   Sparkles,
+  Target,
   Trophy,
   User,
   X,
@@ -35,9 +38,10 @@ import { FloatingMiniTimer } from "../timer/FloatingMiniTimer";
 import { CelebrationModal } from "../rewards/CelebrationModal";
 import { NotificationsModal } from "./NotificationsModal";
 import { BottomNav } from "./BottomNav";
+import { BetaNavStrip } from "./BetaNavStrip";
 import { Sidebar } from "./Sidebar";
 import { WhatsNewModal } from "../WhatsNewModal";
-import { BetaAppShell } from "./BetaAppShell";
+import { BETA_FEATURE_TABS } from "../../lib/beta-shell";
 
 const TAB_ICONS: Partial<Record<Tab, React.ReactNode>> = {
   home: <Home size={18} />,
@@ -54,6 +58,9 @@ const TAB_ICONS: Partial<Record<Tab, React.ReactNode>> = {
   settings: <Settings size={18} />,
   focusLab: <FlaskConical size={18} />,
   themeStudio: <Palette size={18} />,
+  focusPresetLab: <Sliders size={18} />,
+  routineBuilder: <ListTodo size={18} />,
+  goals: <Target size={18} />,
 };
 
 const MAIN_TABS: Tab[] = [
@@ -98,6 +105,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     closeWhatsNew,
     updateUser,
     isBetaShell,
+    leaveBetaShell,
   } = useStudyGrind();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [readinessExamId, setReadinessExamId] = useState<string | null>(null);
@@ -116,6 +124,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    document.body.classList.toggle("beta-full-shell", isBetaShell);
+    return () => document.body.classList.remove("beta-full-shell");
+  }, [isBetaShell]);
+
+  useEffect(() => {
     if (!menuOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setMenuOpen(false);
@@ -132,10 +145,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (!user) return null;
 
-  if (isBetaShell) {
-    return <BetaAppShell>{children}</BetaAppShell>;
-  }
-
   const hasNotificationBadge = hasUnreadNotifications(user, store);
   const readinessExam = (user.exams ?? []).find((e) => e.id === readinessExamId) ?? null;
 
@@ -148,7 +157,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pageTitle = TAB_META[tab]?.label ?? "StudyGrind";
 
   return (
-    <div className={`app liquid-app ${user.ownerFlags.extraParticles ? "particle-trail" : ""}`}>
+    <div className={`app liquid-app ${isBetaShell ? "beta-full-shell" : ""} ${user.ownerFlags.extraParticles ? "particle-trail" : ""}`}>
       <div className="app-body">
         <Sidebar tabs={MAIN_TABS} icons={TAB_ICONS} isTabLocked={isTabLocked} />
 
@@ -172,6 +181,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="topbar-actions">
+              {isBetaShell && <span className="pill beta-top-pill">Beta</span>}
               {!isAndroid && <span className="pill points-pill">{user.focusPoints.toLocaleString()} pts</span>}
               <button
                 type="button"
@@ -196,6 +206,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
 
           <main className="content">{children}</main>
+          {isBetaShell && <BetaNavStrip />}
         </div>
       </div>
 
@@ -320,8 +331,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="drawer-desc">{isTabLocked("themeStudio") ? "Buy in Focus Shop" : "Custom colours & gradients"}</span>
             <ChevronRight className="drawer-arrow" size={16} />
           </button>
+          {isBetaShell && (
+            <>
+              <div className="drawer-beta-divider">
+                <span>Beta features</span>
+              </div>
+              {BETA_FEATURE_TABS.filter((t) => t !== "betaHome").map((t) => {
+                const meta = TAB_META[t];
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    className={`drawer-item drawer-item-beta ${tab === t ? "active" : ""}`}
+                    onClick={() => {
+                      hapticSelection();
+                      goTab(t, { closeMenu: true });
+                    }}
+                  >
+                    <span className="drawer-icon">{TAB_ICONS[t]}</span>
+                    <span className="drawer-label">{meta.label}</span>
+                    <span className="drawer-desc">{meta.description}</span>
+                    <ChevronRight className="drawer-arrow" size={16} />
+                  </button>
+                );
+              })}
+            </>
+          )}
         </div>
         <div className="drawer-foot">
+          {isBetaShell && (
+            <button type="button" className="ghost pressable" onClick={() => leaveBetaShell()}>
+              Exit beta area
+            </button>
+          )}
           <button type="button" className="ghost pressable" onClick={() => goTab("settings", { closeMenu: true })}>
             <Settings size={16} /> Settings
           </button>

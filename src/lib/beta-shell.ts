@@ -1,16 +1,11 @@
 import type { AppStore, Tab, UserData } from "../types";
 
-export const BETA_SHELL_TABS: Tab[] = [
-  "betaHome",
-  "timer",
-  "focusPresetLab",
-  "routineBuilder",
-  "goals",
-  "settings",
-  "accessibility",
-];
+/** Beta feature pages — require beta area (betaShellActive) to open. */
+export const BETA_FEATURE_TABS: Tab[] = ["betaHome", "focusPresetLab", "routineBuilder", "goals"];
 
-export const BETA_ONLY_TABS: Tab[] = ["betaHome", "focusPresetLab", "routineBuilder", "goals"];
+export function isBetaFeatureTab(tab: Tab): boolean {
+  return BETA_FEATURE_TABS.includes(tab);
+}
 
 /** Owner or explicit per-user grant from Owner Settings. */
 export function hasBetaProgramAccess(user: UserData | undefined): boolean {

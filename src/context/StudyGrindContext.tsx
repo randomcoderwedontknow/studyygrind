@@ -47,7 +47,7 @@ import { themes, vipThemes, honoraryThemes } from "../data/themes";
 import { studyRankFromUser } from "../data/ranks";
 import { titleById, CUSTOM_NAME_TITLE_ID, STARTER_TITLE } from "../data/titles";
 import { migrateStore, defaultUser, isToday, TAB_META, resetUserAccount } from "../lib/migrations";
-import { BETA_ONLY_TABS, BETA_SHELL_TABS, canEnterBetaProgram, isBetaShell as userInBetaShell } from "../lib/beta-shell";
+import { canEnterBetaProgram, isBetaFeatureTab, isBetaShell as userInBetaShell } from "../lib/beta-shell";
 import { applyMilestones, detectMilestones } from "../lib/milestones";
 import { applyTrophyUnlocks, detectNewTrophies } from "../lib/trophies";
 import {
@@ -627,11 +627,7 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
     (next: Tab, opts?: { closeMenu?: boolean }) => {
       const u = store.users[store.current];
       const inBeta = userInBetaShell(u, store);
-      if (inBeta && !BETA_SHELL_TABS.includes(next)) {
-        setToast("Leave beta area to open the full app.");
-        return;
-      }
-      if (!inBeta && BETA_ONLY_TABS.includes(next)) {
+      if (!inBeta && isBetaFeatureTab(next)) {
         setToast("Enter beta area from Settings.");
         setTab("settings");
         if (opts?.closeMenu) setMenuOpen(false);
@@ -677,9 +673,9 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
         return p;
       }
       const next = { ...u, betaShellActive: true };
-      setTab("betaHome");
+      setTab("home");
       setMenuOpen(false);
-      setToast("Welcome to the beta area.");
+      setToast("Beta area on — new pages at the bottom of the app.");
       return { ...p, users: { ...p.users, [u.email]: next } };
     });
   }, [setStore, setTab, setMenuOpen, setToast]);
@@ -700,11 +696,6 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
       setToast("Beta access ended — returned to main app.");
     }
   }, [user, store, updateUser, setTab, setToast]);
-
-  useEffect(() => {
-    if (!user?.betaShellActive || !canEnterBetaProgram(user, store)) return;
-    setTab((current) => (BETA_SHELL_TABS.includes(current) ? current : "betaHome"));
-  }, [store.current, user?.betaShellActive, store.betaProgramEnabled]);
 
   useEffect(() => {
     document.body.dataset.appMode = betaShellActive ? "beta" : "main";

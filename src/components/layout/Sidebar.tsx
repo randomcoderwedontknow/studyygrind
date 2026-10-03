@@ -1,5 +1,6 @@
 import { Lock, LogOut, Settings } from "lucide-react";
 import { useStudyGrind } from "../../context/StudyGrindContext";
+import { BETA_FEATURE_TABS } from "../../lib/beta-shell";
 import type { Tab } from "../../types";
 
 export function Sidebar({
@@ -11,7 +12,7 @@ export function Sidebar({
   icons: Partial<Record<Tab, React.ReactNode>>;
   isTabLocked: (t: Tab) => boolean;
 }) {
-  const { user, tab, goTab, TAB_META, setStore, studyRankLabel } = useStudyGrind();
+  const { user, tab, goTab, TAB_META, setStore, studyRankLabel, isBetaShell, leaveBetaShell } = useStudyGrind();
   if (!user) return null;
 
   return (
@@ -42,8 +43,31 @@ export function Sidebar({
             </button>
           );
         })}
+        {isBetaShell && (
+          <>
+            <div className="drawer-beta-divider">
+              <span>Beta</span>
+            </div>
+            {BETA_FEATURE_TABS.filter((t) => t !== "betaHome").map((t) => (
+              <button
+                key={t}
+                type="button"
+                className={`drawer-item drawer-item-beta ${tab === t ? "active" : ""}`}
+                onClick={() => goTab(t)}
+              >
+                <span className="drawer-icon">{icons[t]}</span>
+                <span className="drawer-label">{TAB_META[t].label}</span>
+              </button>
+            ))}
+          </>
+        )}
       </div>
       <div className="sidebar-foot">
+        {isBetaShell && (
+          <button type="button" className="ghost pressable" onClick={() => leaveBetaShell()}>
+            Exit beta
+          </button>
+        )}
         <button type="button" className="ghost pressable" onClick={() => goTab("settings")}>
           <Settings size={16} /> Settings
         </button>

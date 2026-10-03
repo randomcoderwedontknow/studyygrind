@@ -27,16 +27,8 @@ import { FocusPresetLabPage } from "./pages/beta/FocusPresetLabPage";
 import { RoutineBuilderPage } from "./pages/beta/RoutineBuilderPage";
 import { GoalsPage } from "./pages/beta/GoalsPage";
 import { BetaShellGate } from "./components/beta/BetaShellGate";
-import { BETA_SHELL_TABS } from "./lib/beta-shell";
-
 function AppRoutes() {
   const { store, user, tab, setTab, hasUnlock, setToast, maintenance, isBetaShell } = useStudyGrind();
-
-  useEffect(() => {
-    if (isBetaShell && user && !BETA_SHELL_TABS.includes(tab)) {
-      setTab("betaHome");
-    }
-  }, [isBetaShell, tab, user, setTab]);
 
   useEffect(() => {
     if (!user || canAccessTab(tab, user, hasUnlock, store)) return;

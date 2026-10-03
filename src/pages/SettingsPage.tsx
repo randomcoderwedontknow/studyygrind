@@ -65,44 +65,6 @@ export function SettingsPage() {
   const isOwner = user.role === "owner";
   const showBetaEntry = shouldShowBetaEntry(user, store);
 
-  if (isBetaShell) {
-    return (
-      <PageTransition>
-        <section className="card">
-          <h4>
-            <FlaskConical size={16} /> Beta settings
-          </h4>
-          <p className="soft">Minimal settings while testing beta features.</p>
-          <PressableButton onClick={leaveBetaShell}>Leave beta area</PressableButton>
-        </section>
-        <section className="card">
-          <Row icon={<Moon size={18} />} label="Dark mode" hint="Appearance in beta shell">
-            <Toggle
-              on={user.darkMode}
-              label="Dark mode"
-              onClick={() => updateUser({ ...user, darkMode: !user.darkMode })}
-            />
-          </Row>
-        </section>
-        <section className="card">
-          <PressableButton variant="ghost" onClick={() => goTab("accessibility")}>
-            <Accessibility size={16} /> Accessibility
-          </PressableButton>
-        </section>
-        <section className="card">
-          <PressableButton
-            variant="ghost"
-            onClick={() => {
-              setStore((p) => ({ ...p, current: "" }));
-              setToast("Signed out.");
-            }}
-          >
-            <LogOut size={16} /> Sign out
-          </PressableButton>
-        </section>
-      </PageTransition>
-    );
-  }
   const reminderHour = user.reminderHour ?? 17;
   const reminderMinute = user.reminderMinute ?? 0;
 
@@ -309,15 +271,25 @@ export function SettingsPage() {
         </PressableButton>
       </section>
 
-      {showBetaEntry && (
+      {(showBetaEntry || isBetaShell) && (
         <section className="card beta-entry-card">
           <div>
             <h4>
               <FlaskConical size={16} /> Beta program
             </h4>
-            <p className="soft">Try Focus Preset Lab, Routine Builder, and Goals in a simplified app shell.</p>
+            <p className="soft">
+              {isBetaShell
+                ? "Full StudyGrind plus Preset Lab, Routines, and Goals in the bar at the bottom (and in the menu)."
+                : "Same app as usual — beta pages appear at the bottom when you enter."}
+            </p>
           </div>
-          <PressableButton onClick={enterBetaShell}>Enter beta area</PressableButton>
+          {isBetaShell ? (
+            <PressableButton variant="ghost" onClick={leaveBetaShell}>
+              Leave beta area
+            </PressableButton>
+          ) : (
+            <PressableButton onClick={enterBetaShell}>Enter beta area</PressableButton>
+          )}
         </section>
       )}
 
