@@ -1,4 +1,4 @@
-import type { CustomTheme, SavedCustomTheme } from "../types";
+import type { CustomTheme, SavedCustomTheme, ThemeSurface } from "../types";
 import { themeAppearance } from "../data/themes";
 import { resolveAccent } from "../data/accent-presets";
 
@@ -22,8 +22,9 @@ export function applyThemeToDocument(
   customThemes: CustomTheme[],
   savedCustom?: SavedCustomTheme[],
   accentPreset = "theme",
+  surface: ThemeSurface = "classic",
 ): AppliedAppearance {
-  const t = themeAppearance(themeId, customThemes, savedCustom);
+  const t = themeAppearance(themeId, customThemes, savedCustom, surface);
   document.body.style.setProperty("--primary", t.color);
   if (t.color2) {
     document.body.style.setProperty("--primary-2", t.color2);

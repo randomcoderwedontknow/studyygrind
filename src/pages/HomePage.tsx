@@ -7,7 +7,6 @@ import {
   Clock3,
   Crown,
   Gift,
-  Lock,
   MoreHorizontal,
   NotebookPen,
   Shield,
@@ -30,7 +29,8 @@ import { PageTransition } from "../components/ui/PageTransition";
 import { PressableButton } from "../components/ui/PressableButton";
 import { Modal } from "../components/ui/Modal";
 import { studyRankFromUser } from "../data/ranks";
-import type { Tab } from "../types";
+import { FocusLockModal, FocusLockRow } from "../components/focus/FocusLockSetup";
+import { todayKey } from "../lib/dates";
 
 function greeting() {
   const h = new Date().getHours();
@@ -45,14 +45,13 @@ export function HomePage() {
   const { user, goTab, updateUser, setToast, store, pushToUserInbox, applyFocusProfile, studyRankLabel, displayTitle } =
     useStudyGrind();
   const [focusLockModal, setFocusLockModal] = useState(false);
-  const [lockDraft, setLockDraft] = useState<Tab[]>([]);
   const [moreOpen, setMoreOpen] = useState(false);
   const [honourableMsg, setHonourableMsg] = useState("");
 
   if (!user) return null;
 
-  const todayKey = new Date().toISOString().slice(0, 10);
-  const todayMins = user.weeklyHistory[todayKey] ?? 0;
+  const today = todayKey();
+  const todayMins = user.weeklyHistory[today] ?? 0;
   const pendingTasks = user.tasks.filter((t) => t.status !== "done").length;
   const goalPct = Math.min(100, Math.round((todayMins / Math.max(1, user.personalGoalMinutes)) * 100));
   const rank = studyRankFromUser(user);
@@ -255,22 +254,7 @@ export function HomePage() {
             </PressableButton>
           </div>
         )}
-        <div className="grouped-list-row">
-          <div>
-            <b>
-              <Lock size={14} /> Focus lock
-            </b>
-            <p className="soft">{user.focusLockOn ? "On" : "Off"} · block tabs during sessions</p>
-          </div>
-          <button
-            type="button"
-            className={`toggle ${user.focusLockOn ? "on" : ""}`}
-            aria-label="Toggle focus lock"
-            onClick={() => (user.focusLockOn ? updateUser({ ...user, focusLockOn: false }) : setFocusLockModal(true))}
-          >
-            <span />
-          </button>
-        </div>
+        <FocusLockRow user={user} onChange={updateUser} onOpenPicker={() => setFocusLockModal(true)} />
         <div className="grouped-list-row">
           <label className="soft">Daily goal (min)</label>
           <input
@@ -336,36 +320,15 @@ export function HomePage() {
         </div>
       </Modal>
 
-      <Modal
+      <FocusLockModal
         open={focusLockModal}
-        title="Focus lock tabs"
         onClose={() => setFocusLockModal(false)}
-        footer={
-          <PressableButton
-            onClick={() => {
-              updateUser({ ...user, lockedTabs: lockDraft, focusLockOn: true });
-              setFocusLockModal(false);
-              setToast("Focus lock enabled.");
-            }}
-          >
-            Apply lock
-          </PressableButton>
-        }
-      >
-        <p className="soft">Choose tabs to block during an active session:</p>
-        <div className="chip-group">
-          {(["shop", "cards", "games", "notes", "analytics"] as Tab[]).map((p) => (
-            <button
-              key={p}
-              type="button"
-              className={`chip ${lockDraft.includes(p) ? "chip-active" : ""}`}
-              onClick={() => setLockDraft((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]))}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-      </Modal>
+        user={user}
+        onApply={(lockedTabs) => {
+          updateUser({ ...user, lockedTabs, focusLockOn: true });
+          setToast("Focus lock enabled.");
+        }}
+      />
     </PageTransition>
   );
 }

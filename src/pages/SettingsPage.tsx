@@ -1,5 +1,5 @@
-import { useRef } from "react";
-import { Accessibility, Bell, Database, Lock, LogOut, Moon, Palette, RotateCcw, Share2, ShieldCheck, Vibrate, Volume2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { Accessibility, Bell, Database, LogOut, Moon, RotateCcw, Share2, ShieldCheck, Vibrate, Volume2 } from "lucide-react";
 import { Share } from "@capacitor/share";
 import { useStudyGrind } from "../context/StudyGrindContext";
 import { STUDYGRIND_APK_DOWNLOAD_URL } from "../data/constants";
@@ -7,8 +7,7 @@ import { ensureExactAlarmPermission, getNotificationService, syncNotificationSch
 import { isAndroid, isNative } from "../lib/native";
 import { hapticLight, hapticMedium } from "../lib/haptics";
 import { formatReminderTime, REMINDER_HOUR_OPTIONS } from "../lib/reminder-time";
-import { ACCENT_AUTO_ID, ACCENT_PRESETS, ACCENT_THEME_ID, autoAccentForHour } from "../data/accent-presets";
-import { themeAppearance } from "../data/themes";
+import { FocusLockModal, FocusLockRow } from "../components/focus/FocusLockSetup";
 import { PageTransition } from "../components/ui/PageTransition";
 import { PressableButton } from "../components/ui/PressableButton";
 import { downloadBackup, readBackupFile } from "../lib/backup";
@@ -56,50 +55,13 @@ function Toggle({ on, onClick, label, disabled }: { on: boolean; onClick: () => 
   );
 }
 
-function AccentSwatch({
-  id,
-  name,
-  primary,
-  primary2,
-  hint,
-  active,
-  onPick,
-}: {
-  id: string;
-  name: string;
-  primary: string;
-  primary2: string;
-  hint?: string;
-  active: boolean;
-  onPick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={active}
-      className={`accent-swatch ${active ? "active" : ""}`}
-      data-accent-id={id}
-      onClick={() => {
-        hapticLight();
-        onPick();
-      }}
-    >
-      <span className="accent-dot" style={{ background: `linear-gradient(135deg, ${primary}, ${primary2})` }} aria-hidden="true" />
-      <span className="accent-name">{name}</span>
-      {hint && <small className="soft">{hint}</small>}
-    </button>
-  );
-}
-
 export function SettingsPage() {
   const { user, updateUser, setStore, setToast, goTab, store } = useStudyGrind();
   const importRef = useRef<HTMLInputElement>(null);
+  const [focusLockModal, setFocusLockModal] = useState(false);
   if (!user) return null;
 
   const isOwner = user.role === "owner";
-  const themeLook = themeAppearance(user.equippedTheme, store.customThemes, user.savedCustomThemes);
-  const autoLook = autoAccentForHour(new Date().getHours());
   const reminderHour = user.reminderHour ?? 17;
   const reminderMinute = user.reminderMinute ?? 0;
 
@@ -173,54 +135,14 @@ export function SettingsPage() {
         </div>
       </section>
 
-      <section className="card accent-card">
-        <h4>
-          <Palette size={16} /> Dynamic accent
-        </h4>
-        <p className="soft">Tint buttons, chips and highlights with a wallpaper-style tone — independent of your equipped theme.</p>
-        <div className="accent-grid" role="radiogroup" aria-label="Dynamic accent">
-          <AccentSwatch
-            id={ACCENT_THEME_ID}
-            name="Theme"
-            primary={themeLook.color}
-            primary2={themeLook.color2 ?? themeLook.color}
-            hint="equipped"
-            active={user.accentPreset === ACCENT_THEME_ID}
-            onPick={() => updateUser({ ...user, accentPreset: ACCENT_THEME_ID })}
-          />
-          <AccentSwatch
-            id={ACCENT_AUTO_ID}
-            name="Auto"
-            primary={autoLook.primary}
-            primary2={autoLook.primary2}
-            hint="time of day"
-            active={user.accentPreset === ACCENT_AUTO_ID}
-            onPick={() => updateUser({ ...user, accentPreset: ACCENT_AUTO_ID })}
-          />
-          {ACCENT_PRESETS.map((p) => (
-            <AccentSwatch
-              key={p.id}
-              id={p.id}
-              name={p.name}
-              primary={p.primary}
-              primary2={p.primary2}
-              active={user.accentPreset === p.id}
-              onPick={() => updateUser({ ...user, accentPreset: p.id })}
-            />
-          ))}
-        </div>
-        <small className="soft block accent-note">
-          {user.accentPreset === ACCENT_THEME_ID
-            ? "Following your equipped theme."
-            : user.accentPreset === ACCENT_AUTO_ID
-              ? `${autoLook.name} — shifts warm to cool through the day.`
-              : `${ACCENT_PRESETS.find((p) => p.id === user.accentPreset)?.name ?? "Custom"} accent active.`}
-        </small>
-      </section>
-
       <section className="card">
         <h4>Focus</h4>
         <div className="list">
+          <FocusLockRow
+            user={user}
+            onChange={updateUser}
+            onOpenPicker={() => setFocusLockModal(true)}
+          />
           <Row
             icon={<Bell size={18} />}
             label="Daily study reminders (optional)"
@@ -278,11 +200,18 @@ export function SettingsPage() {
               </select>
             </Row>
           )}
-          <Row icon={<Lock size={18} />} label="Focus lock" hint="Block chosen tabs while a session runs">
-            <Toggle on={user.focusLockOn} label="Toggle focus lock" onClick={() => updateUser({ ...user, focusLockOn: !user.focusLockOn })} />
-          </Row>
         </div>
       </section>
+
+      <FocusLockModal
+        open={focusLockModal}
+        onClose={() => setFocusLockModal(false)}
+        user={user}
+        onApply={(lockedTabs) => {
+          updateUser({ ...user, lockedTabs, focusLockOn: true });
+          setToast("Focus lock enabled.");
+        }}
+      />
 
       <section className="card">
         <h4>Accessibility</h4>
@@ -377,7 +306,7 @@ export function SettingsPage() {
           Signed in as <b>{user.username}</b>
           {user.role !== "user" ? ` · ${user.role}` : ""}
         </p>
-        <p className="soft settings-version">StudyGrind v12.0.0</p>
+        <p className="soft settings-version">StudyGrind v12.2.7</p>
       </section>
     </PageTransition>
   );

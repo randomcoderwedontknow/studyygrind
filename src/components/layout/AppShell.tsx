@@ -22,7 +22,9 @@ import {
   X,
 } from "lucide-react";
 import { useStudyGrind } from "../../context/StudyGrindContext";
-import { pointsEventStatus } from "../../lib/point-multiplier";
+import { dayDiff } from "../../lib/dates";
+import { hasUnreadNotifications } from "../../lib/notification-items";
+import { ExamReadinessModal } from "../exams/ExamReadinessModal";
 import { UNLOCK_IDS } from "../../data/constants";
 import { isAndroid } from "../../lib/native";
 import { hapticSelection } from "../../lib/haptics";
@@ -93,8 +95,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     stopImpersonating,
     whatsNewOpen,
     closeWhatsNew,
+    updateUser,
   } = useStudyGrind();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [readinessExamId, setReadinessExamId] = useState<string | null>(null);
 
   useEffect(() => {
     document.body.dataset.drawer = menuOpen ? "open" : "closed";
@@ -118,13 +122,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [menuOpen, setMenuOpen]);
 
+  useEffect(() => {
+    if (!user) return;
+    const due = (user.exams ?? []).find((e) => !e.archived && e.examDate && dayDiff(e.examDate) > 0 && !e.readinessAskedAt);
+    if (due) setReadinessExamId((cur) => cur ?? due.id);
+  }, [user?.exams, user?.email]);
+
   if (!user) return null;
 
-  const hasNotificationBadge =
-    user.inbox.length > 0 ||
-    Boolean(store.announcement) ||
-    pointsEventStatus(store).multiplier > 1 ||
-    (user.recentMilestones?.length ?? 0) > 0;
+  const hasNotificationBadge = hasUnreadNotifications(user, store);
+  const readinessExam = (user.exams ?? []).find((e) => e.id === readinessExamId) ?? null;
 
   const isTabLocked = (t: Tab) => {
     if (t === "focusLab") return !hasUnlock(UNLOCK_IDS.focusLab);
@@ -211,6 +218,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       />
 
       <WhatsNewModal open={whatsNewOpen} onClose={closeWhatsNew} />
+
+      <ExamReadinessModal
+        exam={readinessExam}
+        open={Boolean(readinessExam)}
+        onSkip={() => {
+          if (!readinessExam) return;
+          updateUser({
+            ...user,
+            exams: user.exams.map((e) =>
+              e.id === readinessExam.id ? { ...e, readinessAskedAt: new Date().toISOString() } : e,
+            ),
+          });
+          setReadinessExamId(null);
+        }}
+        onSubmit={(rating, note) => {
+          if (!readinessExam) return;
+          updateUser({
+            ...user,
+            exams: user.exams.map((e) =>
+              e.id === readinessExam.id
+                ? { ...e, readinessRating: rating, readinessNote: note || undefined, readinessAskedAt: new Date().toISOString() }
+                : e,
+            ),
+          });
+          setReadinessExamId(null);
+        }}
+      />
 
       <FloatingMiniTimer />
 

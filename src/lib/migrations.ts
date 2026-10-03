@@ -6,7 +6,104 @@ import { getWeekKey } from "./week";
 import { normalizeDateKey, isTodayKey, todayKey } from "./dates";
 import { backfillTrophies } from "./trophies";
 import { pickDailyQuest } from "../data/daily-quests";
-import type { AppStore, DeckCard, Exam, Note, OnboardingProfile, Tab, Task, UserData } from "../types";
+import type { AppStore, DeckCard, Exam, Note, OnboardingProfile, Tab, Task, ThemeId, UserData } from "../types";
+import { grantRotatingSurface, grantThemeSurface } from "./theme-variants";
+
+const REMOVED_GAME_UNLOCKS = [
+  "memory-tiles",
+  "math-sprint",
+  "memory-sprint",
+  "logic-burst",
+  "pattern-rush",
+  "micro-chess",
+  "focus-dodge",
+  "pattern-repeat",
+  "typing-burst",
+  "coin-catcher",
+  "timer-rush",
+];
+
+const CORE_GAMES = ["word-scramble", "number-ninja", "reaction-tap", "memory-sprint"];
+
+function mapThemeId(id: string): string {
+  return id === "gold" ? "sandyGold" : id;
+}
+
+function migrateToV10(u: UserData): UserData {
+  let ownedThemes = (u.ownedThemes ?? []).map((t) => mapThemeId(String(t)) as ThemeId);
+  ownedThemes = Array.from(new Set(ownedThemes));
+  let equippedTheme = mapThemeId(u.equippedTheme ?? "green");
+  if (!(equippedTheme in themes) && !equippedTheme.startsWith("user-theme-") && !equippedTheme.startsWith("custom-")) {
+    equippedTheme = "green";
+  }
+
+  let themeVariantsOwned = { ...(u.themeVariantsOwned ?? {}) };
+  for (const tid of ownedThemes) {
+    themeVariantsOwned = grantThemeSurface(themeVariantsOwned, tid, "classic");
+  }
+  themeVariantsOwned = grantThemeSurface(themeVariantsOwned, "green", "classic");
+  themeVariantsOwned = grantThemeSurface(themeVariantsOwned, "green", "liquid");
+
+  const savedCustomThemes = (u.savedCustomThemes ?? []).map((t) => ({
+    ...t,
+    liquidUi: t.liquidUi ?? true,
+  }));
+
+  const gamesUnlocked = Array.from(
+    new Set([...CORE_GAMES, ...(u.gamesUnlocked ?? []).filter((g) => !REMOVED_GAME_UNLOCKS.includes(g) || CORE_GAMES.includes(g))]),
+  ).filter((g) => CORE_GAMES.includes(g));
+
+  const unlocks = { ...(u.unlocks ?? {}) };
+  for (const key of Object.keys(unlocks)) {
+    if (key.startsWith("game-") && REMOVED_GAME_UNLOCKS.some((g) => key.includes(g.replace(/-/g, "")) || key === `game-${g}`)) {
+      delete unlocks[key];
+    }
+  }
+
+  return {
+    ...u,
+    ownedThemes,
+    equippedTheme,
+    themeVariantsOwned,
+    equippedThemeSurface: u.equippedThemeSurface ?? "liquid",
+    accentPreset: "theme",
+    dismissedNotifications: u.dismissedNotifications ?? [],
+    savedCustomThemes,
+    gamesUnlocked,
+    unlocks,
+    accessibility: {
+      reduceMotion: u.accessibility?.reduceMotion ?? false,
+      textScale: u.accessibility?.textScale ?? "default",
+      highContrast: u.accessibility?.highContrast ?? false,
+      largeTargets: u.accessibility?.largeTargets ?? false,
+      hapticLevel: u.accessibility?.hapticLevel ?? "normal",
+      liquidUiEnabled: u.accessibility?.liquidUiEnabled ?? true,
+    },
+    exams: (u.exams ?? []).map((e) => ({
+      ...e,
+      readinessRating: e.readinessRating,
+      readinessAskedAt: e.readinessAskedAt,
+      readinessNote: e.readinessNote,
+      archived: e.archived ?? false,
+    })),
+    decks: (u.decks ?? []).map((d) => ({ ...d, linkedExamId: d.linkedExamId })),
+    dataVersion: 10,
+  };
+}
+
+function migrateToV11(u: UserData): UserData {
+  let rotatingThemeVariantsOwned = { ...(u.rotatingThemeVariantsOwned ?? {}) };
+  for (const id of u.ownedRotatingThemeIds ?? []) {
+    if (!rotatingThemeVariantsOwned[id]?.classic && !rotatingThemeVariantsOwned[id]?.liquid) {
+      rotatingThemeVariantsOwned = grantRotatingSurface(rotatingThemeVariantsOwned, id, "classic");
+    }
+  }
+  return {
+    ...u,
+    rotatingThemeVariantsOwned,
+    dataVersion: DATA_VERSION,
+  };
+}
 
 const DEFAULT_ONBOARDING_DRAFT: OnboardingProfile = {
   displayName: "",
@@ -122,7 +219,10 @@ export function defaultUser(email: string, password: string, username: string): 
     focusLockOn: false,
     lockedTabs: [],
     dailySpinDate: "",
-    gamesUnlocked: ["word-scramble", "number-ninja", "reaction-tap", "memory-tiles", "math-sprint"],
+    gamesUnlocked: [...CORE_GAMES],
+    themeVariantsOwned: { green: { classic: true, liquid: true } },
+    equippedThemeSurface: "liquid",
+    dismissedNotifications: [],
     achievements: [],
     moodBefore: [],
     moodAfter: [],
@@ -162,6 +262,7 @@ export function defaultUser(email: string, password: string, username: string): 
     loginStreak: 0,
     lastActiveDate: "",
     ownedRotatingThemeIds: [],
+    rotatingThemeVariantsOwned: {},
     notificationPref: false,
     reminderHour: 17,
     reminderMinute: 0,
@@ -226,6 +327,7 @@ export function defaultUser(email: string, password: string, username: string): 
       highContrast: false,
       largeTargets: false,
       hapticLevel: "normal",
+      liquidUiEnabled: true,
     },
     seenReleaseVersion: "",
     dailyDealPurchasedKey: "",
@@ -303,7 +405,7 @@ export function migrateUser(k: string, v: Partial<UserData>): UserData {
   if (v.mentorHubUnlocked) unlocks[UNLOCK_IDS.mentorHub] = true;
   if (v.customTitleUnlocked) unlocks[UNLOCK_IDS.customName] = true;
 
-  const equipRaw = String(v.equippedTheme ?? "green");
+  const equipRaw = mapThemeId(String(v.equippedTheme ?? "green"));
   const equipNormalized =
     equipRaw in themes || equipRaw.startsWith("custom-") || equipRaw.startsWith("user-theme-")
       ? equipRaw
@@ -359,6 +461,7 @@ export function migrateUser(k: string, v: Partial<UserData>): UserData {
     weeklyThresholdsClaimed: v.weeklyThresholdsClaimed ?? {},
     loginStreak: v.loginStreak ?? 0,
     ownedRotatingThemeIds: v.ownedRotatingThemeIds ?? [],
+    rotatingThemeVariantsOwned: v.rotatingThemeVariantsOwned ?? {},
     notificationPref: v.notificationPref ?? v.notifications ?? true,
     reminderHour: v.reminderHour ?? 17,
     reminderMinute: v.reminderMinute ?? 0,
@@ -374,7 +477,10 @@ export function migrateUser(k: string, v: Partial<UserData>): UserData {
     seenMilestones: v.seenMilestones ?? [],
     recentMilestones: (v.recentMilestones ?? []).slice(-12),
     hapticsEnabled: v.hapticsEnabled ?? true,
-    accentPreset: typeof v.accentPreset === "string" && v.accentPreset ? v.accentPreset : "theme",
+    accentPreset: "theme",
+    themeVariantsOwned: v.themeVariantsOwned ?? { green: { classic: true, liquid: true } },
+    equippedThemeSurface: v.equippedThemeSurface ?? "liquid",
+    dismissedNotifications: v.dismissedNotifications ?? [],
     soundscapeId: typeof v.soundscapeId === "string" && v.soundscapeId ? v.soundscapeId : "off",
     soundscapeVolume:
       typeof v.soundscapeVolume === "number" && Number.isFinite(v.soundscapeVolume)
@@ -424,6 +530,10 @@ export function migrateUser(k: string, v: Partial<UserData>): UserData {
           examDate: e.examDate ?? "",
           targetMinutesPerDay: e.targetMinutesPerDay ?? 45,
           linkedTaskId: e.linkedTaskId,
+          readinessRating: e.readinessRating,
+          readinessAskedAt: e.readinessAskedAt,
+          readinessNote: e.readinessNote,
+          archived: e.archived ?? false,
         }))
       : [],
     selectedExamId: typeof v.selectedExamId === "string" ? v.selectedExamId : "",
@@ -433,6 +543,7 @@ export function migrateUser(k: string, v: Partial<UserData>): UserData {
       highContrast: v.accessibility?.highContrast ?? false,
       largeTargets: v.accessibility?.largeTargets ?? false,
       hapticLevel: v.accessibility?.hapticLevel ?? "normal",
+      liquidUiEnabled: v.accessibility?.liquidUiEnabled ?? true,
     },
     seenReleaseVersion: typeof v.seenReleaseVersion === "string" ? v.seenReleaseVersion : "",
     dailyDealPurchasedKey: typeof v.dailyDealPurchasedKey === "string" ? v.dailyDealPurchasedKey : "",
@@ -451,6 +562,12 @@ export function migrateUser(k: string, v: Partial<UserData>): UserData {
   if (merged.dailyQuestDate !== questDay) {
     const q = pickDailyQuest(k, questDay);
     merged = { ...merged, dailyQuestDate: questDay, dailyQuestId: q.id, dailyQuestClaimed: false };
+  }
+  if ((merged.dataVersion ?? 0) < 10) {
+    merged = migrateToV10(merged);
+  }
+  if ((merged.dataVersion ?? 0) < DATA_VERSION) {
+    merged = migrateToV11(merged);
   }
   return backfillTrophies(merged);
 }

@@ -1,5 +1,6 @@
 import { rotatingThemeById } from "./pools/rotating-themes";
-import type { CustomTheme, ThemeId } from "../types";
+import { appearanceForSurface } from "../lib/theme-colors";
+import type { CustomTheme, ThemeId, ThemeSurface } from "../types";
 
 export type ThemeMeta = {
   name: string;
@@ -30,30 +31,31 @@ export const themes: Record<ThemeId, ThemeMeta> = {
   orange: { name: "Power Orange", price: 2_700, color: "#e58a2f", tier: "vip" },
   violet: { name: "Deep Violet", price: 2_700, color: "#7f63e5", tier: "vip" },
   crimson: { name: "Crimson Pulse", price: 2_850, color: "#eb3349", color2: "#f45c43", gradient: true, tier: "vip" },
-  gold: { name: "Golden Hour", price: 3_000, color: "#f7971e", color2: "#ffd200", gradient: true, tier: "vip" },
+  sand: { name: "Desert Sand", price: 2_200, color: "#c4a574", color2: "#e8dcc8", gradient: true, tier: "premium" },
+  sandyGold: { name: "Sandy Gold", price: 3_200, color: "#d4a853", color2: "#f5e6b8", gradient: true, tier: "vip" },
   royal: { name: "Royal Gold", price: 3_600, color: "#d4a935", tier: "honour" },
   aurora: { name: "Aurora Mint", price: 3_600, color: "#3fd3be", tier: "honour" },
 };
 
-export const vipThemes: ThemeId[] = ["pink", "red", "orange", "violet", "crimson", "gold"];
+export const vipThemes: ThemeId[] = ["pink", "red", "orange", "violet", "crimson", "sandyGold"];
 export const honoraryThemes: ThemeId[] = ["royal", "aurora"];
 
 export function themeAppearance(
   id: string,
   customThemes: CustomTheme[],
-  savedCustom?: { id: string; name: string; color: string; color2?: string; gradient?: boolean }[],
+  savedCustom?: { id: string; name: string; color: string; color2?: string; gradient?: boolean; liquidUi?: boolean }[],
+  surface: ThemeSurface = "classic",
 ): { id: string; name: string; color: string; color2?: string; gradient?: boolean } {
   const built = themes[id as ThemeId];
-  if (built) return { id, name: built.name, color: built.color, color2: built.color2, gradient: built.gradient };
+  if (built) {
+    const shifted = appearanceForSurface(built.color, built.color2, built.gradient, surface);
+    return { id, name: built.name, ...shifted };
+  }
   const rotating = rotatingThemeById(id);
-  if (rotating)
-    return {
-      id,
-      name: rotating.name,
-      color: rotating.color,
-      color2: rotating.color2,
-      gradient: rotating.gradient,
-    };
+  if (rotating) {
+    const shifted = appearanceForSurface(rotating.color, rotating.color2, rotating.gradient, surface);
+    return { id, name: rotating.name, ...shifted };
+  }
   const ownerCustom = customThemes.find((t) => t.id === id);
   if (ownerCustom)
     return {
@@ -64,6 +66,10 @@ export function themeAppearance(
       gradient: ownerCustom.gradient,
     };
   const userCustom = savedCustom?.find((t) => t.id === id);
-  if (userCustom) return { id, name: userCustom.name, color: userCustom.color, color2: userCustom.color2, gradient: userCustom.gradient };
+  if (userCustom) {
+    const useSurface = userCustom.liquidUi === false ? "classic" : surface;
+    const shifted = appearanceForSurface(userCustom.color, userCustom.color2, userCustom.gradient, useSurface);
+    return { id, name: userCustom.name, ...shifted };
+  }
   return { id: "green", name: themes.green.name, color: themes.green.color };
 }

@@ -1,6 +1,7 @@
 import { ALL_SHOP_ITEMS } from "../data/shop-catalog";
 import { UNLOCK_IDS } from "../data/constants";
 import { themes } from "../data/themes";
+import { scalePrice } from "./pricing";
 import { PURCHASABLE_TITLES } from "../data/titles";
 import type { TrophyReward } from "../data/trophies";
 import type { ThemeId, UserData } from "../types";
@@ -57,18 +58,18 @@ export function canRedeemTrophyCredit(item: {
 }): boolean {
   if (item.free || item.ownerOnly) return false;
   if (item.unlockKey && CREDIT_EXCLUDED.has(item.unlockKey)) return false;
-  return item.price <= TROPHY_CREDIT_MAX_PRICE;
+  return scalePrice(item.price) <= TROPHY_CREDIT_MAX_PRICE;
 }
 
 export function canRedeemTrophyCreditForTheme(themeId: ThemeId): boolean {
   const meta = themes[themeId];
   if (!meta || meta.price <= 0) return false;
   if (meta.tier === "vip" || meta.tier === "honour") return false;
-  return meta.price <= TROPHY_CREDIT_MAX_PRICE;
+  return scalePrice(meta.price) <= TROPHY_CREDIT_MAX_PRICE;
 }
 
 export function canRedeemTrophyCreditForTitle(_titleId: string, price: number): boolean {
-  return price <= TROPHY_CREDIT_MAX_PRICE;
+  return scalePrice(price) <= TROPHY_CREDIT_MAX_PRICE;
 }
 
 export function applyTrophyReward(user: UserData, reward: TrophyReward): { user: UserData; granted: string } {

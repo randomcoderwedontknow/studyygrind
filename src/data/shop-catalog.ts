@@ -69,15 +69,7 @@ export const SHOP_TITLE_ITEMS: ShopItem[] = [
 ];
 
 export const SHOP_GAME_UNLOCKS: ShopItem[] = [
-  { id: "game-memory-sprint", name: "Memory Sprint", description: "Simon-style sequence game.", price: 600, category: "games", unlockKey: "memory-sprint" },
-  { id: "game-logic-burst", name: "Logic Burst", description: "True/false trivia.", price: 600, category: "games", unlockKey: "logic-burst" },
-  { id: "game-pattern-rush", name: "Pattern Rush", description: "5-tone pattern repeats.", price: 600, category: "games", unlockKey: "pattern-rush" },
-  { id: "game-micro-chess", name: "Micro Chess", description: "Tiny tactic picks.", price: 600, category: "games", unlockKey: "micro-chess" },
-  { id: "game-focus-dodge", name: "Focus Dodge", description: "Dodge distractions.", price: 1_000, category: "games", unlockKey: "focus-dodge" },
-  { id: "game-pattern-repeat", name: "Pattern Repeat", description: "Repeat the pattern.", price: 750, category: "games", unlockKey: "pattern-repeat" },
-  { id: "game-typing-burst", name: "Typing Burst", description: "Type fast for points.", price: 1_300, category: "games", unlockKey: "typing-burst" },
-  { id: "game-coin-catcher", name: "Coin Catcher", description: "Catch falling coins.", price: 1_500, category: "games", unlockKey: "coin-catcher" },
-  { id: "game-timer-rush", name: "Timer Rush", description: "Stop closest to target.", price: 2_000, category: "games", unlockKey: "timer-rush" },
+  { id: "game-memory-sprint", name: "Memory Sprint", description: "Simon-style sequence game.", price: 850, category: "games", unlockKey: "memory-sprint" },
 ];
 
 export const SHOP_FREE_QOL: ShopItem[] = [

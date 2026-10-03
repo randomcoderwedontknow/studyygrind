@@ -180,9 +180,69 @@ export function FlashcardsPage() {
                 <input type="checkbox" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} /> Shuffle
               </label>
             </div>
+            <label className="soft">Linked exam (optional)</label>
+            <select
+              value={deck.linkedExamId ?? ""}
+              onChange={(e) =>
+                updateUser({
+                  ...user,
+                  decks: user.decks.map((d) =>
+                    d.id === studyDeckId ? { ...d, linkedExamId: e.target.value || undefined } : d,
+                  ),
+                })
+              }
+              aria-label="Link deck to exam"
+            >
+              <option value="">No exam</option>
+              {(user.exams ?? [])
+                .filter((e) => !e.archived)
+                .map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.title}
+                  </option>
+                ))}
+            </select>
+            <div className="row wrap" style={{ marginTop: 8 }}>
+              <PressableButton
+                variant="ghost"
+                onClick={() => {
+                  if (!window.confirm(`Delete deck "${deck.name}"?`)) return;
+                  updateUser({ ...user, decks: user.decks.filter((d) => d.id !== studyDeckId) });
+                  setStudyDeckId("");
+                }}
+              >
+                Delete deck
+              </PressableButton>
+            </div>
             <p className="soft">
               Mastery: {mastery}% · {deck.cards.length} cards · {deckDueCount(deck.cards)} due now
             </p>
+            {deck.cards.length > 0 && !examActive && (
+              <ul className="soft deck-card-list">
+                {deck.cards.map((c) => (
+                  <li key={c.id} className="row wrap">
+                    <span>
+                      {c.q.slice(0, 40)}
+                      {c.q.length > 40 ? "…" : ""}
+                    </span>
+                    <button
+                      type="button"
+                      className="ghost"
+                      onClick={() =>
+                        updateUser({
+                          ...user,
+                          decks: user.decks.map((d) =>
+                            d.id === studyDeckId ? { ...d, cards: d.cards.filter((x) => x.id !== c.id) } : d,
+                          ),
+                        })
+                      }
+                    >
+                      Delete
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
             {!examActive && !examDone && (
               <div className="row wrap" style={{ marginTop: 12 }}>
                 <select value={examMinutes} onChange={(e) => setExamMinutes(Number(e.target.value))} aria-label="Exam duration">

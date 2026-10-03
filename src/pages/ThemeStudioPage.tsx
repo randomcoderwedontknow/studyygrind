@@ -12,6 +12,7 @@ export function ThemeStudioPage() {
   const [color, setColor] = useState("#31be83");
   const [color2, setColor2] = useState("#2d9ce2");
   const [gradient, setGradient] = useState(true);
+  const [liquidUi, setLiquidUi] = useState(true);
 
   if (!user) return null;
   if (!hasUnlock(UNLOCK_IDS.colourMaker)) {
@@ -34,7 +35,15 @@ export function ThemeStudioPage() {
 
   const saveTheme = () => {
     const id = `user-theme-${crypto.randomUUID().slice(0, 8)}`;
-    const entry = { id, name, color, color2: gradient ? color2 : undefined, gradient, createdAt: new Date().toISOString() };
+    const entry = {
+      id,
+      name,
+      color,
+      color2: gradient ? color2 : undefined,
+      gradient,
+      liquidUi,
+      createdAt: new Date().toISOString(),
+    };
     updateUser({
       ...user,
       savedCustomThemes: [...user.savedCustomThemes, entry],
@@ -55,6 +64,9 @@ export function ThemeStudioPage() {
         <input type="color" value={color} onChange={(e) => setColor(e.target.value)} aria-label="Primary colour" />
         <label>
           <input type="checkbox" checked={gradient} onChange={(e) => setGradient(e.target.checked)} /> Gradient
+        </label>
+        <label>
+          <input type="checkbox" checked={liquidUi} onChange={(e) => setLiquidUi(e.target.checked)} /> Liquid UI theme
         </label>
         {gradient && (
           <>

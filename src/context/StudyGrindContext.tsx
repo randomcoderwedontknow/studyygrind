@@ -20,7 +20,18 @@ import { applyStatusBarStyle, isAndroid, isNative, minimizeApp, onBackButton } f
 import { applyThemeToDocument } from "../lib/theme-engine";
 import { hapticSuccess, setHapticsEnabled } from "../lib/haptics";
 import { syncWidgetData } from "../lib/widget";
-import { applyAccessibilityToBody } from "../lib/accessibility-body";
+import { applyAccessibilityToBody, applyThemeSurfaceToBody } from "../lib/accessibility-body";
+import { applyDiscount, scalePrice, themePurchasePrice, shopDisplayPrice } from "../lib/pricing";
+import {
+  canEquipThemeSurface,
+  effectiveLiquidSurface,
+  grantRotatingSurface,
+  grantThemeSurface,
+  ownsRotatingClassic,
+  ownsRotatingLiquid,
+  ownsThemeClassic,
+  ownsThemeLiquid,
+} from "../lib/theme-variants";
 import { App as CapApp } from "@capacitor/app";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import {
@@ -30,9 +41,6 @@ import {
   APP_RELEASE_VERSION,
   GAME_POINTS_DAILY_CAP,
   MEMORY_SPRINT_ID,
-  LOGIC_BURST_ID,
-  PATTERN_RUSH_ID,
-  MICRO_CHESS_ID,
   UNLOCK_IDS,
 } from "../data/constants";
 import { themes, vipThemes, honoraryThemes } from "../data/themes";
@@ -113,11 +121,11 @@ type Ctx = {
   grantMiniGamePoints: (u: UserData, wish: number) => UserData;
   spin: () => void;
   spinResult: string;
-  buyTheme: (id: ThemeId) => void;
+  buyTheme: (id: ThemeId, surface: import("../types").ThemeSurface) => void;
   buyBooster: (b: Booster) => void;
   purchaseShopItem: (unlockKey: string, price: number, name: string) => boolean;
   buyTitle: (titleId: string, price: number) => void;
-  buyRotatingTheme: (themeId: string, price: number) => void;
+  buyRotatingTheme: (themeId: string, surface: import("../types").ThemeSurface) => void;
   equipTitle: (titleId: string) => void;
   hasUnlock: (key: string) => boolean;
   login: () => Promise<void>;
@@ -150,7 +158,7 @@ type Ctx = {
   milestoneCelebration: import("../types").MilestoneRecord | null;
   /** @deprecated use closeCelebration */
   closeMilestoneCelebration: () => void;
-  equipTheme: (id: string) => void;
+  equipTheme: (id: string, surface?: import("../types").ThemeSurface) => void;
   applyFocusProfile: (profileId: string) => void;
   saveFocusProfile: (name?: string) => boolean;
   deleteFocusProfile: (id: string) => void;
@@ -604,13 +612,13 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (next === "focusLab" && !hasUnlock(UNLOCK_IDS.focusLab)) {
-        setToast(`Unlock Focus Lab in the shop (${FOCUS_LAB_PRICE.toLocaleString()} pts).`);
+        setToast(`Unlock Focus Lab in the shop (${shopDisplayPrice(FOCUS_LAB_PRICE).toLocaleString()} pts).`);
         setTab("shop");
         if (opts?.closeMenu) setMenuOpen(false);
         return;
       }
       if (next === "themeStudio" && !hasUnlock(UNLOCK_IDS.colourMaker)) {
-        setToast(`Unlock Colour Studio in the shop (${COLOUR_MAKER_PRICE.toLocaleString()} pts).`);
+        setToast(`Unlock Colour Studio in the shop (${shopDisplayPrice(COLOUR_MAKER_PRICE).toLocaleString()} pts).`);
         setTab("shop");
         if (opts?.closeMenu) setMenuOpen(false);
         return;
@@ -628,27 +636,26 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
 
   const equippedThemeId = user?.equippedTheme ?? "green";
   const activeThemeId = previewTheme ?? equippedThemeId;
-  const accentPreset = user?.accentPreset ?? "theme";
-  // "auto" accent shifts by hour — re-run the theme effect when the hour changes.
-  const [accentHour, setAccentHour] = useState(() => new Date().getHours());
-  useEffect(() => {
-    if (accentPreset !== "auto") return;
-    const i = window.setInterval(() => {
-      const h = new Date().getHours();
-      setAccentHour((prev) => (prev === h ? prev : h));
-    }, 60_000);
-    return () => window.clearInterval(i);
-  }, [accentPreset]);
-
   useEffect(() => {
     const userDark = user?.darkMode ?? true;
     const dark = store.forceMode === "dark" ? true : store.forceMode === "light" ? false : userDark;
     document.body.dataset.mode = dark ? "dark" : "light";
-    const applied = applyThemeToDocument(activeThemeId, store.customThemes, user?.savedCustomThemes, accentPreset);
+    const surface = user ? effectiveLiquidSurface(user) : "classic";
+    const applied = applyThemeToDocument(activeThemeId, store.customThemes, user?.savedCustomThemes, "theme", surface);
+    applyThemeSurfaceToBody(surface);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute("content", dark ? "#0c1411" : applied.color);
     void applyStatusBarStyle(dark, dark ? "#0c1411" : applied.color);
-  }, [user?.darkMode, activeThemeId, store.forceMode, store.customThemes, user?.savedCustomThemes, accentPreset, accentHour]);
+  }, [
+    user?.darkMode,
+    activeThemeId,
+    store.forceMode,
+    store.customThemes,
+    user?.savedCustomThemes,
+    user?.equippedThemeSurface,
+    user?.accessibility?.liquidUiEnabled,
+    user?.equippedTheme,
+  ]);
 
   // Mirror the haptics preference into the stateless helper module.
   useEffect(() => {
@@ -669,7 +676,7 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
   }, [user?.email, user?.seenReleaseVersion]);
 
   // Android home-screen widget: debounce-write today's stats whenever they change.
-  const widgetTodayKey = new Date().toISOString().slice(0, 10);
+  const widgetTodayKey = todayKey();
   const widgetTodayMins = user?.weeklyHistory?.[widgetTodayKey] ?? 0;
   useEffect(() => {
     if (!isAndroid || !user) return;
@@ -746,7 +753,8 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
         setToast("Already unlocked.");
         return false;
       }
-      const final = Math.max(0, price - Math.floor((price * user.discount) / 100));
+      const scaled = scalePrice(price);
+      const final = applyDiscount(scaled, user.discount);
       const useCredit = (user.trophyShopCredits ?? 0) > 0 && canRedeemTrophyCredit({ price, unlockKey });
       if (!useCredit && user.focusPoints < final) {
         setToast("Not enough focus points.");
@@ -765,8 +773,8 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
         next.customTitleUnlocked = true;
         next.ownedTitles = Array.from(new Set([...next.ownedTitles, CUSTOM_NAME_TITLE_ID]));
       }
-      if (unlockKey.startsWith("game-") || ["memory-sprint", "logic-burst", "pattern-rush", "micro-chess", "focus-dodge", "pattern-repeat", "typing-burst", "coin-catcher", "timer-rush"].includes(unlockKey)) {
-        const gid = unlockKey.replace("game-", "");
+      if (unlockKey.startsWith("game-") || unlockKey === MEMORY_SPRINT_ID) {
+        const gid = unlockKey.startsWith("game-") ? unlockKey.replace("game-", "") : unlockKey;
         next.gamesUnlocked = Array.from(new Set([...next.gamesUnlocked, gid]));
       }
       updateUser(next);
@@ -781,35 +789,45 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
     [user, hasUnlock, updateUser, logAction],
   );
 
-  const buyTheme = (id: ThemeId) => {
+  const buyTheme = (id: ThemeId, surface: import("../types").ThemeSurface) => {
     if (!user) return;
     const base = themes[id].price;
-    const final = Math.max(0, base - Math.floor((base * user.discount) / 100));
-    const useCredit = (user.trophyShopCredits ?? 0) > 0 && canRedeemTrophyCreditForTheme(id);
+    const hasClassic = ownsThemeClassic(user, id);
+    const hasLiquid = ownsThemeLiquid(user, id);
+    const rawPrice = themePurchasePrice(base, surface, hasClassic, hasLiquid);
+    const final = applyDiscount(rawPrice, user.discount);
+    const useCredit =
+      surface === "classic" && (user.trophyShopCredits ?? 0) > 0 && canRedeemTrophyCreditForTheme(id);
+    if (surface === "classic" && ownsThemeClassic(user, id)) return setToast("You already own the normal version.");
+    if (surface === "liquid" && ownsThemeLiquid(user, id)) return setToast("You already own the Liquid UI version.");
     if (!useCredit && user.focusPoints < final) return setToast("Not enough focus points.");
+    let themeVariantsOwned = grantThemeSurface(user.themeVariantsOwned ?? {}, id, surface);
+    const ownedThemes = user.ownedThemes.includes(id) ? user.ownedThemes : [...user.ownedThemes, id];
     updateUser({
       ...user,
       focusPoints: useCredit ? user.focusPoints : user.focusPoints - final,
-      ownedThemes: [...user.ownedThemes, id],
+      ownedThemes,
+      themeVariantsOwned,
       equippedTheme: id,
+      equippedThemeSurface: surface,
       discount: useCredit ? user.discount : 0,
       trophyShopCredits: useCredit ? user.trophyShopCredits - 1 : user.trophyShopCredits,
     });
     enqueueCelebration({
       kind: "points",
       title: `${themes[id].name} purchased!`,
-      subtitle: useCredit ? "Unlocked with trophy credit" : "Equipped automatically",
+      subtitle: useCredit ? "Unlocked with trophy credit" : `${surface === "liquid" ? "Liquid UI" : "Normal"} equipped`,
     });
     setToast(
       useCredit
         ? `${themes[id].name} unlocked with a free trophy credit!`
-        : `${themes[id].name} purchased and equipped for ${final} points.`,
+        : `${themes[id].name} (${surface === "liquid" ? "Liquid UI" : "Normal"}) for ${final.toLocaleString()} points.`,
     );
   };
 
   const buyBooster = (b: Booster) => {
     if (!user) return;
-    const final = Math.max(0, b.price - Math.floor((b.price * user.discount) / 100));
+    const final = applyDiscount(scalePrice(b.price), user.discount);
     if (user.focusPoints < final) return setToast("Not enough focus points.");
     let next: UserData = { ...user, focusPoints: user.focusPoints - final, discount: 0 };
     let resultText = "";
@@ -833,7 +851,7 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
         resultText = "20% discount queued.";
         break;
       case "gameUnlock": {
-        const all = [MEMORY_SPRINT_ID, LOGIC_BURST_ID, PATTERN_RUSH_ID, MICRO_CHESS_ID, "focus-dodge", "pattern-repeat", "typing-burst", "coin-catcher", "timer-rush"];
+        const all = [MEMORY_SPRINT_ID];
         const locked = all.filter((g) => !user.gamesUnlocked.includes(g));
         if (!locked.length) return setToast("All mini-games unlocked.");
         const pick = locked[Math.floor(Math.random() * locked.length)];
@@ -846,7 +864,15 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
           () => ({ ...next, focusPoints: next.focusPoints + 1500 }),
           () => ({ ...next, discount: 25 }),
           () => ({ ...next, streakShields: next.streakShields + 1 }),
-          () => ({ ...next, ownedThemes: Array.from(new Set([...next.ownedThemes, "forest" as ThemeId])) }),
+          () => {
+            const tid = "forest" as ThemeId;
+            const variants = grantThemeSurface(next.themeVariantsOwned ?? {}, tid, "classic");
+            return {
+              ...next,
+              ownedThemes: Array.from(new Set([...next.ownedThemes, tid])),
+              themeVariantsOwned: variants,
+            };
+          },
         ];
         next = rolls[Math.floor(Math.random() * rolls.length)]();
         resultText = "Mystery Box opened!";
@@ -878,21 +904,32 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
     setToast(resultText);
   };
 
-  const buyRotatingTheme = (themeId: string, price: number) => {
+  const buyRotatingTheme = (themeId: string, surface: import("../types").ThemeSurface) => {
     if (!user) return;
     const meta = rotatingThemeById(themeId);
     if (!meta) return setToast("Theme not found.");
-    if (user.ownedRotatingThemeIds.includes(themeId)) return setToast("Already owned.");
-    const final = Math.max(0, price - Math.floor((price * user.discount) / 100));
+    const hasClassic = ownsRotatingClassic(user, themeId);
+    const hasLiquid = ownsRotatingLiquid(user, themeId);
+    if (surface === "classic" && hasClassic) return setToast("You already own the normal version.");
+    if (surface === "liquid" && hasLiquid) return setToast("You already own the liquid version.");
+    const rawPrice = themePurchasePrice(meta.price, surface, hasClassic, hasLiquid);
+    const final = applyDiscount(rawPrice, user.discount);
     if (user.focusPoints < final) return setToast("Not enough focus points.");
+    let rotatingThemeVariantsOwned = grantRotatingSurface(user.rotatingThemeVariantsOwned ?? {}, themeId, surface);
+    const ownedRotatingThemeIds = user.ownedRotatingThemeIds.includes(themeId)
+      ? user.ownedRotatingThemeIds
+      : [...user.ownedRotatingThemeIds, themeId];
     updateUser({
       ...user,
       focusPoints: user.focusPoints - final,
-      ownedRotatingThemeIds: [...user.ownedRotatingThemeIds, themeId],
+      ownedRotatingThemeIds,
+      rotatingThemeVariantsOwned,
+      equippedTheme: themeId,
+      equippedThemeSurface: surface,
       discount: 0,
     });
     showReward(`${meta.name} is yours forever!`);
-    setToast(`${meta.name} added to Owned Colours.`);
+    setToast(`${meta.name} (${surface === "liquid" ? "Liquid" : "Normal"}) for ${final.toLocaleString()} pts.`);
   };
 
   const buyTitle = (titleId: string, price: number) => {
@@ -902,7 +939,8 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
       setToast("Already owned.");
       return;
     }
-    const final = Math.max(0, price - Math.floor((price * user.discount) / 100));
+    const scaled = scalePrice(price);
+    const final = applyDiscount(scaled, user.discount);
     const useCredit = (user.trophyShopCredits ?? 0) > 0 && canRedeemTrophyCreditForTitle(titleId, price);
     if (!useCredit && user.focusPoints < final) return setToast("Not enough points.");
     updateUser({
@@ -923,10 +961,14 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
     setToast("Title equipped.");
   };
 
-  const equipTheme = (id: string) => {
+  const equipTheme = (id: string, surface?: import("../types").ThemeSurface) => {
     if (!user) return;
-    updateUser({ ...user, equippedTheme: id });
-    setToast("Theme equipped.");
+    const nextSurface = surface ?? (user.equippedTheme === id ? user.equippedThemeSurface ?? "classic" : "classic");
+    if (!canEquipThemeSurface(user, id, nextSurface)) {
+      return setToast(`Buy the ${nextSurface === "liquid" ? "liquid" : "normal"} version first.`);
+    }
+    updateUser({ ...user, equippedTheme: id, equippedThemeSurface: nextSurface });
+    setToast(`Theme equipped (${nextSurface === "liquid" ? "Liquid" : "Normal"}).`);
   };
 
   const maxFocusProfiles = () => (hasUnlock("qol-extra-preset") ? 5 : 4);
@@ -1056,16 +1098,22 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
       { text: "+400 Focus Points", points: 400 },
     ];
     const reward = rewards[Math.floor(Math.random() * rewards.length)];
-    const owned =
-      reward.unlockTheme && !user.ownedThemes.includes(reward.unlockTheme)
-        ? [...user.ownedThemes, reward.unlockTheme]
-        : user.ownedThemes;
+    let ownedThemes = user.ownedThemes;
+    let themeVariantsOwned = { ...(user.themeVariantsOwned ?? {}) };
+    if (reward.unlockTheme) {
+      const tid = reward.unlockTheme as ThemeId;
+      if (!ownsThemeClassic(user, tid)) {
+        ownedThemes = [...user.ownedThemes, tid];
+        themeVariantsOwned = grantThemeSurface(themeVariantsOwned, tid, "classic");
+      }
+    }
     updateUser({
       ...user,
       dailySpinDate: new Date().toDateString(),
       focusPoints: user.focusPoints + (reward.points || 0),
       discount: reward.discount || user.discount,
-      ownedThemes: owned,
+      ownedThemes,
+      themeVariantsOwned,
     });
     setSpinResult(reward.text);
     if (reward.points) showReward("Daily spin!", reward.text, reward.points);

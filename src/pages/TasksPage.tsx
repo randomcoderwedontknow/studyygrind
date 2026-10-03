@@ -7,6 +7,7 @@ import { PressableButton } from "../components/ui/PressableButton";
 import { Modal } from "../components/ui/Modal";
 import { EmptyState } from "../components/ui/EmptyState";
 import { HorizontalTabBar } from "../components/ui/HorizontalTabBar";
+import { dayDiff } from "../lib/dates";
 import type { Exam, Task, TaskPriority, TaskStatus } from "../types";
 
 const PR: Record<TaskPriority, number> = { High: 0, Medium: 1, Low: 2 };
@@ -20,6 +21,8 @@ export function TasksPage() {
   const [mobileCol, setMobileCol] = useState<TaskStatus>("todo");
   const [modalOpen, setModalOpen] = useState(false);
   const [examModalOpen, setExamModalOpen] = useState(false);
+  const [editingExamId, setEditingExamId] = useState("");
+  const [deleteExamId, setDeleteExamId] = useState("");
   const [examDraft, setExamDraft] = useState({ title: "", subject: "", examDate: "", targetMinutesPerDay: 45 });
   const [editingId, setEditingId] = useState("");
   const [input, setInput] = useState({
@@ -54,29 +57,78 @@ export function TasksPage() {
       .filter((t) => t.status === s)
       .sort((a, b) => (PR[a.priority] ?? 1) - (PR[b.priority] ?? 1));
 
-  const daysUntilExam = (date: string) => {
-    const end = new Date(date + "T23:59:59").getTime();
-    return Math.max(0, Math.ceil((end - Date.now()) / 86400000));
+  const examStatusLabel = (date: string) => {
+    const passed = dayDiff(date) > 0;
+    if (passed) return "Due passed";
+    const days = Math.max(0, -dayDiff(date));
+    if (days === 0) return "Today";
+    return `${days} day${days === 1 ? "" : "s"} left`;
+  };
+
+  const openExamModal = (exam?: Exam) => {
+    if (exam) {
+      setEditingExamId(exam.id);
+      setExamDraft({
+        title: exam.title,
+        subject: exam.subject ?? "",
+        examDate: exam.examDate,
+        targetMinutesPerDay: exam.targetMinutesPerDay ?? 45,
+      });
+    } else {
+      setEditingExamId("");
+      setExamDraft({ title: "", subject: "", examDate: "", targetMinutesPerDay: 45 });
+    }
+    setExamModalOpen(true);
   };
 
   const saveExam = () => {
     if (!examDraft.title.trim() || !examDraft.examDate) return;
-    const exam: Exam = {
-      id: crypto.randomUUID(),
-      title: examDraft.title.trim(),
-      subject: examDraft.subject.trim() || undefined,
-      examDate: examDraft.examDate,
-      targetMinutesPerDay: examDraft.targetMinutesPerDay,
-    };
-    updateUser({ ...user, exams: [...(user.exams ?? []), exam] });
+    if (editingExamId) {
+      updateUser({
+        ...user,
+        exams: user.exams.map((e) =>
+          e.id === editingExamId
+            ? {
+                ...e,
+                title: examDraft.title.trim(),
+                subject: examDraft.subject.trim() || undefined,
+                examDate: examDraft.examDate,
+                targetMinutesPerDay: examDraft.targetMinutesPerDay,
+              }
+            : e,
+        ),
+      });
+      setToast("Exam updated.");
+    } else {
+      const exam: Exam = {
+        id: crypto.randomUUID(),
+        title: examDraft.title.trim(),
+        subject: examDraft.subject.trim() || undefined,
+        examDate: examDraft.examDate,
+        targetMinutesPerDay: examDraft.targetMinutesPerDay,
+      };
+      updateUser({ ...user, exams: [...(user.exams ?? []), exam] });
+      setToast("Exam added.");
+    }
     setExamModalOpen(false);
+    setEditingExamId("");
     setExamDraft({ title: "", subject: "", examDate: "", targetMinutesPerDay: 45 });
-    setToast("Exam added.");
+  };
+
+  const deleteExam = (id: string) => {
+    updateUser({
+      ...user,
+      exams: user.exams.filter((e) => e.id !== id),
+      selectedExamId: user.selectedExamId === id ? "" : user.selectedExamId,
+      decks: user.decks.map((d) => (d.linkedExamId === id ? { ...d, linkedExamId: undefined } : d)),
+    });
+    setDeleteExamId("");
+    setToast("Exam removed.");
   };
 
   const studyForExam = (exam: Exam) => {
+    setSelectedTaskId("");
     updateUser({ ...user, selectedExamId: exam.id, focusDurationMin: exam.targetMinutesPerDay ?? 45 });
-    if (exam.linkedTaskId) setSelectedTaskId(exam.linkedTaskId);
     goTab("timer");
   };
 
@@ -247,7 +299,7 @@ export function TasksPage() {
             <CheckSquare size={16} /> Tasks
           </h4>
           <div className="row wrap">
-            <PressableButton variant="ghost" onClick={() => setExamModalOpen(true)}>
+            <PressableButton variant="ghost" onClick={() => openExamModal()}>
               <CalendarClock size={16} /> Add exam
             </PressableButton>
             {!isAndroid && (
@@ -277,24 +329,39 @@ export function TasksPage() {
             <CalendarClock size={16} /> Exams
           </h4>
           <div className="grid2">
-            {(user.exams ?? []).map((exam) => {
-              const days = daysUntilExam(exam.examDate);
-              return (
-                <article key={exam.id} className="task-card">
-                  <b>{exam.title}</b>
-                  <p className="soft">
-                    {exam.subject ? `${exam.subject} · ` : ""}
-                    {days === 0 ? "Today" : `${days} day${days === 1 ? "" : "s"} left`}
-                  </p>
-                  <small className="soft">Aim {exam.targetMinutesPerDay ?? 45}m/day</small>
-                  <div className="row wrap" style={{ marginTop: 8 }}>
-                    <PressableButton onClick={() => studyForExam(exam)}>
-                      <Play size={14} /> Study for exam
-                    </PressableButton>
-                  </div>
-                </article>
-              );
-            })}
+            {(user.exams ?? [])
+              .filter((e) => !e.archived)
+              .map((exam) => {
+                const linkedDecks = user.decks.filter((d) => d.linkedExamId === exam.id);
+                return (
+                  <article key={exam.id} className="task-card">
+                    <div className="row wrap">
+                      <b>{exam.title}</b>
+                      <span className="pill">{examStatusLabel(exam.examDate)}</span>
+                    </div>
+                    <p className="soft">
+                      {exam.subject ? `${exam.subject} · ` : ""}
+                      {exam.examDate}
+                      {exam.readinessRating ? ` · Readiness ${exam.readinessRating}/5` : ""}
+                    </p>
+                    <small className="soft">
+                      Aim {exam.targetMinutesPerDay ?? 45}m/day
+                      {linkedDecks.length ? ` · ${linkedDecks.length} linked deck${linkedDecks.length === 1 ? "" : "s"}` : ""}
+                    </small>
+                    <div className="row wrap" style={{ marginTop: 8 }}>
+                      <PressableButton onClick={() => studyForExam(exam)}>
+                        <Play size={14} /> Study for exam
+                      </PressableButton>
+                      <PressableButton variant="ghost" onClick={() => openExamModal(exam)}>
+                        <Pencil size={14} /> Edit
+                      </PressableButton>
+                      <PressableButton variant="ghost" onClick={() => setDeleteExamId(exam.id)}>
+                        Delete
+                      </PressableButton>
+                    </div>
+                  </article>
+                );
+              })}
           </div>
         </section>
       )}
@@ -336,8 +403,19 @@ export function TasksPage() {
       )}
 
       <Modal
+        open={Boolean(deleteExamId)}
+        title="Delete exam?"
+        onClose={() => setDeleteExamId("")}
+        footer={
+          <PressableButton onClick={() => deleteExam(deleteExamId)}>Delete</PressableButton>
+        }
+      >
+        <p className="soft">This removes the exam and unlinks any flashcard decks.</p>
+      </Modal>
+
+      <Modal
         open={examModalOpen}
-        title="Add exam"
+        title={editingExamId ? "Edit exam" : "Add exam"}
         onClose={() => setExamModalOpen(false)}
         footer={<PressableButton onClick={saveExam}>Save exam</PressableButton>}
       >

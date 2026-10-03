@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { CHESS_MICRO_PUZZLES } from "../data/mini-games";
 import type { GameKind, GameState } from "../types";
 import { useStudyGrind } from "../context/StudyGrindContext";
 
@@ -24,66 +23,24 @@ export function useGames() {
         const arr = w.split("").sort(() => Math.random() - 0.5);
         while (arr.join("") === w) arr.sort(() => Math.random() - 0.5);
         setGameState({ kind: "scramble", word: w, scrambled: arr.join(""), guess: "" });
-      } else if (kind === "math" || kind === "mathSprint") {
+      } else if (kind === "math") {
         const ops: ("+" | "-" | "×")[] = ["+", "-", "×"];
         const op = ops[Math.floor(Math.random() * ops.length)];
         const a = Math.floor(Math.random() * 12) + 1;
         const b = Math.floor(Math.random() * 12) + 1;
-        setGameState({ kind: kind === "mathSprint" ? "mathSprint" : "math", a, b, op: op as "+" | "-" | "×", guess: "", streak: 0 });
-      } else if (kind === "memory" || kind === "memoryTiles" || kind === "pattern" || kind === "patternRepeat") {
-        const len = kind === "pattern" || kind === "patternRepeat" ? Math.min(7, 2 + gameRound) : Math.min(8, 3 + Math.floor(gameRound / 3));
-        const max = kind === "pattern" || kind === "patternRepeat" ? 5 : 4;
-        const sequence = Array.from({ length: len }, () => Math.floor(Math.random() * max));
-        const gkind = kind === "memoryTiles" ? "memoryTiles" : kind === "patternRepeat" ? "patternRepeat" : kind;
-        if (gkind === "memoryTiles") {
-          setGameState({ kind: "memoryTiles", size: 4, pattern: sequence, userInput: [], showing: true });
-          setTimeout(() => setGameState((p) => (p && p.kind === "memoryTiles" ? { ...p, showing: false } : p)), len * 550 + 400);
-        } else {
-          setGameState({ kind: gkind as "memory" | "pattern" | "patternRepeat", sequence, userInput: [], showing: true, step: 0 });
-          let i = 0;
-          const interval = setInterval(() => {
-            i += 1;
-            setGameState((prev) =>
-              prev && (prev.kind === "memory" || prev.kind === "pattern" || prev.kind === "patternRepeat")
-                ? { ...prev, step: i }
-                : prev,
-            );
-            if (i >= len) {
-              clearInterval(interval);
-              setTimeout(
-                () =>
-                  setGameState((prev) =>
-                    prev && (prev.kind === "memory" || prev.kind === "pattern" || prev.kind === "patternRepeat")
-                      ? { ...prev, showing: false }
-                      : prev,
-                  ),
-                500,
-              );
-            }
-          }, 520);
-        }
-      } else if (kind === "logic") {
-        const pairs = [
-          { q: "2 + 2 = 4", c: true },
-          { q: "The moon is larger than Earth", c: false },
-          { q: "Water boils at 100°C at sea level", c: true },
-        ];
-        const pick = pairs[Math.floor(Math.random() * pairs.length)];
-        setGameState({ kind: "logic", question: pick.q, correct: pick.c });
-      } else if (kind === "chessMicro") {
-        setGameState({ kind: "chessMicro", puzzleIdx: Math.floor(Math.random() * CHESS_MICRO_PUZZLES.length), picked: null });
+        setGameState({ kind: "math", a, b, op, guess: "" });
+      } else if (kind === "memory") {
+        const len = Math.min(8, 3 + Math.floor(gameRound / 2));
+        const sequence = Array.from({ length: len }, () => Math.floor(Math.random() * 4));
+        setGameState({ kind: "memory", sequence, userInput: [], showing: true, step: 0 });
       } else if (kind === "reaction") {
-        setGameState({ kind: "reaction", waiting: true, startAt: Date.now() + 1200 + Math.random() * 2000, clicks: 0 });
-      } else if (kind === "focusDodge") {
-        setGameState({ kind: "focusDodge", lane: 1, obstacles: [2], tick: 0 });
-      } else if (kind === "typingBurst") {
-        const phrases = ["study focus calm", "deep work now", "learn repeat win"];
-        setGameState({ kind: "typingBurst", target: phrases[Math.floor(Math.random() * phrases.length)], typed: "", startAt: Date.now() });
-      } else if (kind === "coinCatcher") {
-        setGameState({ kind: "coinCatcher", x: 50, coins: [{ x: 30, y: 0 }], score: 0 });
-      } else if (kind === "timerRush") {
-        const target = 3000 + Math.floor(Math.random() * 4000);
-        setGameState({ kind: "timerRush", target, current: 0, startAt: Date.now() });
+        setGameState({
+          kind: "reaction",
+          waiting: true,
+          startAt: Date.now() + 1200 + Math.random() * 2500,
+          clicks: 0,
+          falseStart: false,
+        });
       }
     },
     [gameRound, setGameState],
@@ -109,22 +66,53 @@ export function useGames() {
 
   const submitScramble = (state: Extract<GameState, { kind: "scramble" }>) => {
     if (!user) return;
-    if (state.guess.toLowerCase().trim() === state.word) award(8, `Correct! +pts`, () => nextRound("scramble"));
+    if (state.guess.toLowerCase().trim() === state.word) award(8, "Correct!", () => nextRound("scramble"));
     else {
-      setGameMessage(`Was: ${state.word}. Score: ${gameScore}`);
+      setGameMessage(`Answer: ${state.word}`);
       setGameState(null);
     }
   };
 
-  const submitMath = (state: Extract<GameState, { kind: "math" | "mathSprint" }>) => {
+  const submitMath = (state: Extract<GameState, { kind: "math" }>) => {
     if (!user) return;
-    const correct = state.op === "+" ? state.a + state.b : state.op === "-" ? state.a - state.b : state.a * state.b;
-    if (Number(state.guess) === correct) award(state.kind === "mathSprint" ? 7 : 6, "Correct!", () => nextRound(state.kind));
+    const g = Number(state.guess);
+    let ans = state.a + state.b;
+    if (state.op === "-") ans = state.a - state.b;
+    if (state.op === "×") ans = state.a * state.b;
+    if (g === ans) award(6, "Nice!", () => nextRound("math"));
     else {
-      setGameMessage(`Answer: ${correct}. Score: ${gameScore}`);
+      setGameMessage(`Answer: ${ans}`);
       setGameState(null);
     }
   };
 
-  return { startGame, nextRound, submitScramble, submitMath, award, setGameState, setGameMessage };
+  const submitMemoryPad = (state: Extract<GameState, { kind: "memory" }>, pad: number) => {
+    if (!user || state.showing) return;
+    const nextInput = [...state.userInput, pad];
+    const idx = nextInput.length - 1;
+    if (state.sequence[idx] !== pad) {
+      setGameMessage("Wrong sequence — try again");
+      setGameState(null);
+      return;
+    }
+    if (nextInput.length === state.sequence.length) {
+      award(10, "Sequence cleared!", () => nextRound("memory"));
+      return;
+    }
+    setGameState({ ...state, userInput: nextInput });
+  };
+
+  const finishMemoryShow = (state: Extract<GameState, { kind: "memory" }>) => {
+    setGameState({ ...state, showing: false, step: state.sequence.length });
+  };
+
+  return {
+    startGame,
+    submitScramble,
+    submitMath,
+    submitMemoryPad,
+    finishMemoryShow,
+    gameRound,
+    gameScore,
+  };
 }

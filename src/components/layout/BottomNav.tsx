@@ -16,7 +16,7 @@ const ITEMS: NavItem[] = [
 const PRIMARY_TABS = new Set<Tab>(["home", "tasks", "timer", "shop"]);
 
 export function BottomNav() {
-  const { tab, goTab, menuOpen, setMenuOpen, timerSnapshot } = useStudyGrind();
+  const { tab, goTab, menuOpen, setMenuOpen, timerSnapshot, user, timerRunning } = useStudyGrind();
 
   const running = Boolean(timerSnapshot?.running);
   const minutesLeft = running ? Math.max(0, Math.ceil((timerSnapshot?.secondsLeft ?? 0) / 60)) : 0;
@@ -27,6 +27,12 @@ export function BottomNav() {
       {ITEMS.map((item) => {
         const isCenter = item.id === "timer";
         const active = item.id === "more" ? moreActive : tab === item.id && !menuOpen;
+        const tabId = item.id === "more" ? null : item.id;
+        const navLocked =
+          tabId &&
+          timerRunning &&
+          user?.focusLockOn &&
+          (user.lockedTabs ?? []).includes(tabId);
         const onClick = () => {
           hapticSelection();
           if (item.id === "more") {
@@ -40,7 +46,8 @@ export function BottomNav() {
           <button
             key={item.id}
             type="button"
-            className={`bottom-nav-item ${active ? "active" : ""} ${isCenter ? "center" : ""}`}
+            className={`bottom-nav-item ${active ? "active" : ""} ${isCenter ? "center" : ""} ${navLocked ? "nav-locked" : ""}`}
+            aria-disabled={navLocked || undefined}
             onClick={onClick}
             aria-label={item.label}
             aria-current={active ? "page" : undefined}

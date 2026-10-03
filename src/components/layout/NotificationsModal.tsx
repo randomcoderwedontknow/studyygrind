@@ -1,6 +1,6 @@
-import { Bell, Megaphone, Sparkles, Zap } from "lucide-react";
+import { Bell, Megaphone, Sparkles, X, Zap } from "lucide-react";
 import { useStudyGrind } from "../../context/StudyGrindContext";
-import { pointsEventStatus } from "../../lib/point-multiplier";
+import { buildNotificationItems, visibleNotificationItems } from "../../lib/notification-items";
 import { ensureExactAlarmPermission, getNotificationService, syncNotificationSchedule } from "../../lib/notifications";
 import { formatReminderTime } from "../../lib/reminder-time";
 import { isAndroid, isNative } from "../../lib/native";
@@ -13,40 +13,23 @@ export function NotificationsModal({ open, onClose }: { open: boolean; onClose: 
 
   const reminderHour = user.reminderHour ?? 17;
   const reminderMinute = user.reminderMinute ?? 0;
+  const dismissed = new Set(user.dismissedNotifications ?? []);
+  const items = visibleNotificationItems(user, store);
 
-  const items: { id: string; title: string; body: string; kind: "inbox" | "announcement" | "event" | "milestone" }[] = [];
+  const dismiss = (id: string) => {
+    if (dismissed.has(id)) return;
+    updateUser({ ...user, dismissedNotifications: [...(user.dismissedNotifications ?? []), id] });
+  };
 
-  user.inbox.forEach((msg, i) => {
-    items.push({ id: `inbox-${i}`, title: "Message", body: msg, kind: "inbox" });
-  });
-
-  if (store.announcement) {
-    items.push({
-      id: "announcement",
-      title: "Announcement",
-      body: store.announcement.text,
-      kind: "announcement",
+  const clearAll = () => {
+    const allIds = buildNotificationItems(user, store).map((i) => i.id);
+    updateUser({
+      ...user,
+      inbox: [],
+      dismissedNotifications: Array.from(new Set([...(user.dismissedNotifications ?? []), ...allIds])),
     });
-  }
-
-  const eventStatus = pointsEventStatus(store);
-  if (eventStatus.multiplier > 1) {
-    items.push({
-      id: "global-event",
-      title: eventStatus.label ?? "Points event",
-      body: `${eventStatus.multiplier}× points active${eventStatus.scheduledActive ? " (bonus day)" : ""}`,
-      kind: "event",
-    });
-  }
-
-  (user.recentMilestones ?? []).slice(0, 3).forEach((m) => {
-    items.push({
-      id: `milestone-${m.id}`,
-      title: m.title,
-      body: m.subtitle,
-      kind: "milestone",
-    });
-  });
+    setToast("All notifications cleared");
+  };
 
   const toggleNotifications = async () => {
     const next = !user.notifications;
@@ -105,16 +88,24 @@ export function NotificationsModal({ open, onClose }: { open: boolean; onClose: 
               {item.kind === "event" && <Zap size={16} />}
               {item.kind === "milestone" && <Sparkles size={16} />}
               {item.kind === "inbox" && <Bell size={16} />}
-              <div>
+              <div className="notification-item-body">
                 <b>{item.title}</b>
                 <p className="soft">{item.body}</p>
               </div>
+              <button type="button" className="ghost icon-btn" aria-label="Dismiss" onClick={() => dismiss(item.id)}>
+                <X size={16} />
+              </button>
             </article>
           ))
         )}
       </div>
 
       <div className="row wrap modal-actions">
+        {items.length > 0 && (
+          <PressableButton variant="ghost" onClick={clearAll}>
+            Clear all
+          </PressableButton>
+        )}
         {user.inbox.length > 0 && (
           <PressableButton variant="ghost" onClick={clearInbox}>
             Clear inbox

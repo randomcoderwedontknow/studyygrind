@@ -25,6 +25,16 @@ import {
   TROPHY_CREDIT_MAX_PRICE,
 } from "../lib/trophy-rewards";
 import { themeSwatchStyle } from "../lib/theme-swatch";
+import { applyDiscount, scalePrice, shopDisplayPrice, themeClassicPrice, themeLiquidPrice, themePurchasePrice } from "../lib/pricing";
+import {
+  isRotatingThemeId,
+  ownsRotatingClassic,
+  ownsRotatingLiquid,
+  ownsThemeClassic,
+  ownsThemeLiquid,
+} from "../lib/theme-variants";
+import { ThemeBuyModal } from "../components/shop/ThemeBuyModal";
+import { RotatingThemeBuyModal } from "../components/shop/RotatingThemeBuyModal";
 import { PageTransition } from "../components/ui/PageTransition";
 import { PressableButton } from "../components/ui/PressableButton";
 import { Modal } from "../components/ui/Modal";
@@ -62,6 +72,8 @@ const ALL_SECTIONS: { key: ShopCategory; title: string }[] = [
 ];
 
 export function ShopPage() {
+  const [themeBuyId, setThemeBuyId] = useState<ThemeId | null>(null);
+  const [rotatingBuyId, setRotatingBuyId] = useState<string | null>(null);
   const {
     user,
     buyTheme,
@@ -82,7 +94,7 @@ export function ShopPage() {
     isWishlisted,
   } = useStudyGrind();
   const [category, setCategory] = useState<ShopView>("daily");
-  const [confirm, setConfirm] = useState<{ id: string; name: string; price: number; unlockKey: string } | null>(null);
+  const [confirm, setConfirm] = useState<{ id: string; name: string; price: number; displayPrice: number; unlockKey: string } | null>(null);
   const [shopFilter, setShopFilter] = useState<"all" | "core" | "premium" | "vip" | "honour">("all");
 
   if (!user) return null;
@@ -109,13 +121,13 @@ export function ShopPage() {
   const ownedUnlock = (key?: string) => (key ? hasUnlock(key) : false);
 
   const openConfirm = (item: ShopItem) => {
-    const final = item.free ? 0 : Math.max(0, item.price - Math.floor((item.price * user.discount) / 100));
-    setConfirm({ id: item.id, name: item.name, price: final, unlockKey: item.unlockKey ?? item.id });
+    const displayPrice = item.free ? 0 : applyDiscount(scalePrice(item.price), user.discount);
+    setConfirm({ id: item.id, name: item.name, price: item.price, displayPrice, unlockKey: item.unlockKey ?? item.id });
   };
 
   const renderCatalogItem = (item: ShopItem) => {
     const owned = item.free || ownedUnlock(item.unlockKey);
-    const final = item.free ? 0 : Math.max(0, item.price - Math.floor((item.price * user.discount) / 100));
+    const final = item.free ? 0 : applyDiscount(scalePrice(item.price), user.discount);
     const canUseCredit = trophyCredits > 0 && !owned && canRedeemTrophyCredit(item);
     const soundMeta = TIMER_END_SOUNDS.find((s) => s.shopKey === item.unlockKey);
     return (
@@ -167,6 +179,7 @@ export function ShopPage() {
     <section className="theme-grid">
       {PURCHASABLE_TITLES.map((t) => {
         const owned = user.ownedTitles.includes(t.id);
+        const displayPts = shopDisplayPrice(t.price, user.discount);
         const canUseCredit = trophyCredits > 0 && !owned && canRedeemTrophyCreditForTitle(t.id, t.price);
         return (
           <article key={t.id} className="theme-card">
@@ -183,7 +196,7 @@ export function ShopPage() {
                         : "Equip"
                       : canUseCredit
                         ? "Free credit"
-                        : `${t.price} pts`}
+                        : `${displayPts.toLocaleString()} pts`}
                   </PressableButton>
             </div>
           </article>
@@ -192,19 +205,23 @@ export function ShopPage() {
       <article className="theme-card">
         <div className="theme-body">
           <b>Custom Name</b>
-          <p className="soft">{CUSTOM_TITLE_UNLOCK_PRICE.toLocaleString()} pts — your own title text</p>
+          <p className="soft">{shopDisplayPrice(CUSTOM_TITLE_UNLOCK_PRICE, user.discount).toLocaleString()} pts — your own title text</p>
           <PressableButton
             disabled={hasUnlock(UNLOCK_IDS.customName)}
-            onClick={() =>
+            onClick={() => {
+              const displayPrice = shopDisplayPrice(CUSTOM_TITLE_UNLOCK_PRICE, user.discount);
               setConfirm({
                 id: UNLOCK_IDS.customName,
                 name: "Custom Name",
                 price: CUSTOM_TITLE_UNLOCK_PRICE,
+                displayPrice,
                 unlockKey: UNLOCK_IDS.customName,
-              })
-            }
+              });
+            }}
           >
-            {hasUnlock(UNLOCK_IDS.customName) ? "Unlocked" : `${CUSTOM_TITLE_UNLOCK_PRICE.toLocaleString()} pts`}
+            {hasUnlock(UNLOCK_IDS.customName)
+              ? "Unlocked"
+              : `${shopDisplayPrice(CUSTOM_TITLE_UNLOCK_PRICE, user.discount).toLocaleString()} pts`}
           </PressableButton>
         </div>
       </article>
@@ -225,25 +242,45 @@ export function ShopPage() {
           })
           .map(([id, meta]) => {
             const tid = id as ThemeId;
-            const owned = user.ownedThemes.includes(tid);
-            const final = Math.max(0, meta.price - Math.floor((meta.price * user.discount) / 100));
-            const canUseCredit = trophyCredits > 0 && !owned && canRedeemTrophyCreditForTheme(tid);
+            const hasClassic = ownsThemeClassic(user, tid);
+            const hasLiquid = ownsThemeLiquid(user, tid);
+            const owned = hasClassic || hasLiquid;
+            const final = applyDiscount(themeClassicPrice(meta.price), user.discount);
+            const canUseCredit = trophyCredits > 0 && !hasClassic && canRedeemTrophyCreditForTheme(tid);
             return (
               <article key={id} className={`theme-card ${user.equippedTheme === tid ? "equipped" : ""} ${owned ? "unlock-glow" : ""}`} style={{ "--theme-color": meta.color } as React.CSSProperties}>
                 <div className="theme-swatch" style={themeSwatchStyle(meta)} />
                 <div className="theme-body">
                   <b>{meta.name}</b>
-                  <small>{owned ? "Owned" : canUseCredit ? "Free credit" : `${final} pts`}</small>
+                  <small>
+                    {owned
+                      ? `${hasClassic ? "Normal" : ""}${hasClassic && hasLiquid ? " · " : ""}${hasLiquid ? "Liquid" : ""}`
+                      : canUseCredit
+                        ? "Free credit (normal)"
+                        : `from ${final.toLocaleString()} pts`}
+                  </small>
                   <div className="row wrap">
-                    {!owned ? (
+                    {(!hasClassic || !hasLiquid) && meta.price > 0 && (
                       <>
-                        <PressableButton onClick={() => buyTheme(tid)}>Buy</PressableButton>
+                        <PressableButton onClick={() => setThemeBuyId(tid)}>Buy</PressableButton>
                         <PressableButton variant="ghost" onClick={() => addToWishlist(tid, "theme", final)}>
                           {isWishlisted(tid) ? "Pinned" : "Pin"}
                         </PressableButton>
                       </>
-                    ) : (
-                      <EquipButton equipped={user.equippedTheme === tid} onEquip={() => equipTheme(tid)} />
+                    )}
+                    {hasClassic && (
+                      <EquipButton
+                        equipped={user.equippedTheme === tid && user.equippedThemeSurface !== "liquid"}
+                        onEquip={() => equipTheme(tid, "classic")}
+                        label="Normal"
+                      />
+                    )}
+                    {hasLiquid && (
+                      <EquipButton
+                        equipped={user.equippedTheme === tid && (user.equippedThemeSurface ?? "liquid") === "liquid"}
+                        onEquip={() => equipTheme(tid, "liquid")}
+                        label="Liquid"
+                      />
                     )}
                     <PressableButton variant="ghost" onClick={() => setPreviewTheme(tid)}>Preview</PressableButton>
                   </div>
@@ -258,27 +295,46 @@ export function ShopPage() {
   const renderDaily = () => (
     <section className="card shop-tab-panel">
       <h4>Today&apos;s focus colours</h4>
-      <p className="soft">Rotates daily — bought colours stay in Owned Colours forever.</p>
+      <p className="soft">Rotates daily — buy Normal (base colour) or Liquid (shifted + glass UI). Owned forever in Owned Colours.</p>
       <div className="theme-grid">
         {dailyShopThemes(getDayKey()).map((t) => {
-          const owned = user.ownedRotatingThemeIds.includes(t.id);
-          const final = Math.max(0, t.price - Math.floor((t.price * user.discount) / 100));
-          const swatch = themeSwatchStyle({ color: t.color, color2: t.color2, gradient: t.gradient });
+          const hasClassic = ownsRotatingClassic(user, t.id);
+          const hasLiquid = ownsRotatingLiquid(user, t.id);
+          const classicPay = applyDiscount(themePurchasePrice(t.price, "classic", hasClassic, hasLiquid), user.discount);
+          const liquidPay = applyDiscount(themePurchasePrice(t.price, "liquid", hasClassic, hasLiquid), user.discount);
+          const priceLabel = !hasClassic && !hasLiquid
+            ? `Normal ${shopDisplayPrice(t.price, user.discount).toLocaleString()} · Liquid ${applyDiscount(themeLiquidPrice(t.price), user.discount).toLocaleString()}`
+            : !hasClassic
+              ? `Normal ${classicPay.toLocaleString()}`
+              : !hasLiquid
+                ? `Liquid ${liquidPay.toLocaleString()}${hasClassic ? " upgrade" : ""}`
+                : "Owned";
+          const swatchClassic = themeSwatchStyle(themeAppearance(t.id, [], user.savedCustomThemes, "classic"));
+          const swatchLiquid = themeSwatchStyle(themeAppearance(t.id, [], user.savedCustomThemes, "liquid"));
+          const equippedClassic = user.equippedTheme === t.id && (user.equippedThemeSurface ?? "classic") !== "liquid";
+          const equippedLiquid = user.equippedTheme === t.id && (user.equippedThemeSurface ?? "classic") === "liquid";
           return (
             <article
               key={t.id}
               className={`theme-card ${user.equippedTheme === t.id ? "equipped" : ""}`}
               style={{ "--theme-color": t.color } as React.CSSProperties}
             >
-              <div className="theme-swatch" style={swatch} />
+              <div className="row" style={{ gap: 6 }}>
+                <div className="theme-swatch" style={swatchClassic} title="Normal preview" />
+                <div className="theme-swatch" style={swatchLiquid} title="Liquid preview" />
+              </div>
               <div className="theme-body">
                 <b>{t.name}</b>
-                <small>{t.tier} · {owned ? "Owned" : `${final} pts`}</small>
+                <small>{t.tier} · {priceLabel}</small>
                 <div className="row wrap">
-                  {!owned ? (
-                    <PressableButton onClick={() => buyRotatingTheme(t.id, final)}>Buy</PressableButton>
-                  ) : (
-                    <EquipButton equipped={user.equippedTheme === t.id} onEquip={() => equipTheme(t.id)} />
+                  {(!hasClassic || !hasLiquid) && (
+                    <PressableButton onClick={() => setRotatingBuyId(t.id)}>Buy</PressableButton>
+                  )}
+                  {hasClassic && (
+                    <EquipButton equipped={equippedClassic} onEquip={() => equipTheme(t.id, "classic")} label="Normal" />
+                  )}
+                  {hasLiquid && (
+                    <EquipButton equipped={equippedLiquid} onEquip={() => equipTheme(t.id, "liquid")} label="Liquid" />
                   )}
                   <PressableButton variant="ghost" onClick={() => setPreviewTheme(t.id)}>
                     Preview
@@ -292,35 +348,83 @@ export function ShopPage() {
     </section>
   );
 
-  const renderOwned = () => (
-    <section className="card shop-tab-panel">
-      <h4>Owned colours</h4>
-      <p className="soft">Built-in, rotating shop, and custom themes — always equippable.</p>
-      <div className="theme-grid">
-        {[
-          ...user.ownedThemes.map((id) => ({ id })),
-          ...user.ownedRotatingThemeIds.map((id) => ({ id })),
-          ...user.savedCustomThemes.map((c) => ({ id: c.id })),
-        ].map(({ id }) => {
-          const meta = themeAppearance(id, [], user.savedCustomThemes);
-          return (
-            <article key={id} className={`theme-card ${user.equippedTheme === id ? "equipped" : ""}`}>
-              <div className="theme-swatch" style={themeSwatchStyle(meta)} />
-              <div className="theme-body">
-                <b>{meta.name}</b>
-                <EquipButton equipped={user.equippedTheme === id} onEquip={() => equipTheme(id)} />
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    </section>
-  );
+  const renderOwned = () => {
+    const customIds = new Set(user.savedCustomThemes.map((c) => c.id));
+    const builtinIds = user.ownedThemes.filter((id) => themes[id as ThemeId] && !customIds.has(id));
+    const rotatingIds = user.ownedRotatingThemeIds;
+
+    const renderOwnedCard = (id: string) => {
+      const meta = themeAppearance(id, [], user.savedCustomThemes, "classic");
+      const custom = user.savedCustomThemes.find((c) => c.id === id);
+      const rotating = isRotatingThemeId(id);
+      const builtin = Boolean(themes[id as ThemeId]);
+      const hasClassic = custom
+        ? custom.liquidUi !== true
+        : rotating
+          ? ownsRotatingClassic(user, id)
+          : ownsThemeClassic(user, id as ThemeId);
+      const hasLiquid = custom
+        ? custom.liquidUi === true
+        : rotating
+          ? ownsRotatingLiquid(user, id)
+          : ownsThemeLiquid(user, id as ThemeId);
+      const equippedClassic = user.equippedTheme === id && (user.equippedThemeSurface ?? "classic") !== "liquid";
+      const equippedLiquid = user.equippedTheme === id && (user.equippedThemeSurface ?? "classic") === "liquid";
+
+      return (
+        <article key={id} className={`theme-card ${user.equippedTheme === id ? "equipped" : ""}`}>
+          <div className="row" style={{ gap: 6 }}>
+            {hasClassic && (
+              <div className="theme-swatch" style={themeSwatchStyle(themeAppearance(id, [], user.savedCustomThemes, "classic"))} />
+            )}
+            {hasLiquid && (
+              <div className="theme-swatch" style={themeSwatchStyle(themeAppearance(id, [], user.savedCustomThemes, "liquid"))} />
+            )}
+            {!hasClassic && !hasLiquid && <div className="theme-swatch" style={themeSwatchStyle(meta)} />}
+          </div>
+          <div className="theme-body">
+            <b>{meta.name}</b>
+            <small>
+              {hasClassic && hasLiquid ? "Normal · Liquid" : hasLiquid ? "Liquid" : hasClassic ? "Normal" : ""}
+            </small>
+            <div className="row wrap">
+              {hasClassic && (
+                <EquipButton equipped={equippedClassic} onEquip={() => equipTheme(id, "classic")} label="Normal" />
+              )}
+              {hasLiquid && (
+                <EquipButton equipped={equippedLiquid} onEquip={() => equipTheme(id, "liquid")} label="Liquid" />
+              )}
+              {(builtin || rotating) && (!hasClassic || !hasLiquid) && (
+                <PressableButton
+                  variant="ghost"
+                  onClick={() => (rotating ? setRotatingBuyId(id) : setThemeBuyId(id as ThemeId))}
+                >
+                  Upgrade
+                </PressableButton>
+              )}
+            </div>
+          </div>
+        </article>
+      );
+    };
+
+    return (
+      <section className="card shop-tab-panel">
+        <h4>Owned colours</h4>
+        <p className="soft">Equip Normal or Liquid only for variants you bought.</p>
+        <div className="theme-grid">
+          {builtinIds.map(renderOwnedCard)}
+          {rotatingIds.map(renderOwnedCard)}
+          {user.savedCustomThemes.map((c) => renderOwnedCard(c.id))}
+        </div>
+      </section>
+    );
+  };
 
   const renderBoosters = () => (
     <section className="booster-grid">
       {boosters.map((b) => {
-        const final = Math.max(0, b.price - Math.floor((b.price * user.discount) / 100));
+        const final = applyDiscount(scalePrice(b.price), user.discount);
         return (
           <article key={b.id} className={`booster-card ${user.focusPoints < final ? "dim" : ""}`}>
             <div className="booster-icon">
@@ -464,7 +568,7 @@ export function ShopPage() {
                   setConfirm(null);
                 }}
               >
-                {useCredit ? "Redeem free credit" : `Buy for ${confirm.price} pts`}
+                {useCredit ? "Redeem free credit" : `Buy for ${confirm.displayPrice.toLocaleString()} pts`}
               </PressableButton>
             );
           })()
@@ -476,11 +580,34 @@ export function ShopPage() {
           return (
             <p>
               Unlock <b>{confirm.name}</b>{" "}
-              {useCredit ? "using a free trophy shop credit?" : `for ${confirm.price} focus points?`}
+              {useCredit ? "using a free trophy shop credit?" : `for ${confirm.displayPrice.toLocaleString()} focus points?`}
             </p>
           );
         })()}
       </Modal>
+
+      <ThemeBuyModal
+        open={Boolean(themeBuyId)}
+        themeId={themeBuyId}
+        user={user}
+        onClose={() => setThemeBuyId(null)}
+        onBuy={(id, surface) => {
+          buyTheme(id, surface);
+          setThemeBuyId(null);
+        }}
+        canUseCredit={trophyCredits > 0 && themeBuyId ? canRedeemTrophyCreditForTheme(themeBuyId) : false}
+      />
+
+      <RotatingThemeBuyModal
+        open={Boolean(rotatingBuyId)}
+        themeId={rotatingBuyId}
+        user={user}
+        onClose={() => setRotatingBuyId(null)}
+        onBuy={(id, surface) => {
+          buyRotatingTheme(id, surface);
+          setRotatingBuyId(null);
+        }}
+      />
 
       {previewTheme && (
         <p className="soft preview-row">

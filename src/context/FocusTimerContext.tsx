@@ -315,6 +315,7 @@ export function FocusTimerProvider({ children }: { children: ReactNode }) {
           minutes: studied,
           breakMinutes: breakMin,
           taskId: selectedTaskId || undefined,
+          examId: !selectedTaskId && user.selectedExamId ? user.selectedExamId : undefined,
           hour,
           pointsEarned: earned,
           basePoints: reward.basePoints,

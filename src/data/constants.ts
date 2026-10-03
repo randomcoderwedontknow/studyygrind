@@ -1,6 +1,10 @@
 export const STORE_KEY = "studygrind_v2";
-export const DATA_VERSION = 9;
-export const APP_RELEASE_VERSION = "12.0.0";
+export const DATA_VERSION = 11;
+export const APP_RELEASE_VERSION = "12.2.7";
+/** Multiplier applied to shop/theme/unlock base prices (12.2.6 economy). */
+export const PRICE_SCALE = 3.5;
+/** Liquid UI theme variant costs this much more than classic (on scaled classic price). */
+export const LIQUID_THEME_PREMIUM_RATIO = 1.35;
 export const STUDY_DAY_FIRE_MINUTES = 30;
 export const WEEKLY_TITLE_THRESHOLDS = [60, 180, 300, 600, 1200] as const;
 export const DAILY_SHOP_THEME_COUNT = 10;
@@ -13,7 +17,7 @@ export const COMBO_THRESHOLDS = [
 ] as const;
 export const OWNER_EMAIL = "abdullahahmed";
 export const OWNER_PASS = "owner";
-export const GAME_POINTS_DAILY_CAP = 500;
+export const GAME_POINTS_DAILY_CAP = 350;
 export const POINTS_PER_FOCUS_SECOND = 1;
 export const MENTOR_HUB_PRICE = 25_000;
 export const CUSTOM_TITLE_UNLOCK_PRICE = 75_000;

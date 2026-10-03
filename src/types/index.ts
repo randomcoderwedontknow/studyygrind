@@ -38,7 +38,10 @@ export type ThemeId =
   | "plum"
   | "mint"
   | "crimson"
-  | "gold";
+  | "sand"
+  | "sandyGold";
+
+export type ThemeSurface = "classic" | "liquid";
 
 export type TaskStatus = "todo" | "doing" | "done";
 export type TaskPriority = "Low" | "Medium" | "High";
@@ -78,6 +81,7 @@ export type Deck = {
   name: string;
   cards: DeckCard[];
   rewardedAt?: string;
+  linkedExamId?: string;
 };
 
 export type Note = {
@@ -104,6 +108,7 @@ export type SessionLogEntry = {
   minutes: number;
   breakMinutes?: number;
   taskId?: string;
+  examId?: string;
   hour: number;
   pointsEarned: number;
   basePoints?: number;
@@ -207,6 +212,10 @@ export type Exam = {
   examDate: string;
   targetMinutesPerDay?: number;
   linkedTaskId?: string;
+  readinessRating?: 1 | 2 | 3 | 4 | 5;
+  readinessAskedAt?: string;
+  readinessNote?: string;
+  archived?: boolean;
 };
 
 export type AccessibilityPrefs = {
@@ -215,6 +224,8 @@ export type AccessibilityPrefs = {
   highContrast: boolean;
   largeTargets: boolean;
   hapticLevel: "off" | "light" | "normal";
+  /** When false, use flat classic surfaces even if liquid theme is equipped. */
+  liquidUiEnabled: boolean;
 };
 
 export type SavedCustomTheme = {
@@ -224,6 +235,7 @@ export type SavedCustomTheme = {
   color2?: string;
   gradient?: boolean;
   createdAt: string;
+  liquidUi?: boolean;
 };
 
 export type OwnerFlags = {
@@ -283,6 +295,9 @@ export type UserData = {
   notes: Note[];
   noteFolders: NoteFolder[];
   ownedThemes: ThemeId[];
+  /** Per-theme classic / liquid ownership (12.2.6). */
+  themeVariantsOwned?: Partial<Record<ThemeId, { classic?: boolean; liquid?: boolean }>>;
+  equippedThemeSurface?: ThemeSurface;
   equippedTheme: string;
   ownedCustomThemes: string[];
   savedCustomThemes: SavedCustomTheme[];
@@ -333,6 +348,7 @@ export type UserData = {
   loginStreak: number;
   lastActiveDate: string;
   ownedRotatingThemeIds: string[];
+  rotatingThemeVariantsOwned?: Record<string, { classic?: boolean; liquid?: boolean }>;
   notificationPref: boolean;
   reminderHour: number;
   reminderMinute: number;
@@ -354,6 +370,7 @@ export type UserData = {
   dataVersion: number;
   studyGlowEnabled?: boolean;
   dismissedRecommendations?: string[];
+  dismissedNotifications?: string[];
   seenMilestones?: string[];
   recentMilestones?: MilestoneRecord[];
   /** Android haptic feedback (default true). */
@@ -419,37 +436,13 @@ export type Booster = {
   effect: "shield" | "boost24" | "boost12" | "discount20" | "gameUnlock" | "lootbox" | "noteKit";
 };
 
-export type GameKind =
-  | "scramble"
-  | "math"
-  | "memory"
-  | "logic"
-  | "pattern"
-  | "chessMicro"
-  | "reaction"
-  | "memoryTiles"
-  | "focusDodge"
-  | "mathSprint"
-  | "patternRepeat"
-  | "typingBurst"
-  | "coinCatcher"
-  | "timerRush";
+export type GameKind = "scramble" | "math" | "memory" | "reaction";
 
 export type GameState =
   | { kind: "scramble"; word: string; scrambled: string; guess: string }
   | { kind: "math"; a: number; b: number; op: "+" | "-" | "×"; guess: string }
   | { kind: "memory"; sequence: number[]; userInput: number[]; showing: boolean; step: number }
-  | { kind: "logic"; question: string; correct: boolean }
-  | { kind: "pattern"; sequence: number[]; userInput: number[]; showing: boolean; step: number }
-  | { kind: "chessMicro"; puzzleIdx: number; picked: number | null }
-  | { kind: "reaction"; waiting: boolean; startAt: number; clicks: number }
-  | { kind: "memoryTiles"; size: number; pattern: number[]; userInput: number[]; showing: boolean }
-  | { kind: "focusDodge"; lane: number; obstacles: number[]; tick: number }
-  | { kind: "mathSprint"; a: number; b: number; op: string; guess: string; streak: number }
-  | { kind: "patternRepeat"; sequence: number[]; userInput: number[]; showing: boolean }
-  | { kind: "typingBurst"; target: string; typed: string; startAt: number }
-  | { kind: "coinCatcher"; x: number; coins: { x: number; y: number }[]; score: number }
-  | { kind: "timerRush"; target: number; current: number; startAt: number }
+  | { kind: "reaction"; waiting: boolean; startAt: number; clicks: number; falseStart?: boolean }
   | null;
 
 export type TimerPhase = "focus" | "break";

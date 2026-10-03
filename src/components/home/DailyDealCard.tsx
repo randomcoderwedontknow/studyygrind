@@ -1,6 +1,8 @@
 import { Tag } from "lucide-react";
 import { useStudyGrind } from "../../context/StudyGrindContext";
 import { dailyDealForUser } from "../../lib/daily-deal";
+import { grantThemeSurface } from "../../lib/theme-variants";
+import type { ThemeId } from "../../types";
 import { PressableButton } from "../ui/PressableButton";
 
 export function DailyDealCard() {
@@ -25,11 +27,16 @@ export function DailyDealCard() {
         setToast("You already own this theme.");
         return;
       }
+      const tid = deal.themeId as ThemeId;
+      let themeVariantsOwned = grantThemeSurface(user.themeVariantsOwned ?? {}, tid, "classic");
+      themeVariantsOwned = grantThemeSurface(themeVariantsOwned, tid, "liquid");
       updateUser({
         ...user,
         focusPoints: user.focusPoints - deal.dealPrice,
-        ownedThemes: [...user.ownedThemes, deal.themeId],
-        equippedTheme: deal.themeId,
+        ownedThemes: user.ownedThemes.includes(tid) ? user.ownedThemes : [...user.ownedThemes, tid],
+        themeVariantsOwned,
+        equippedTheme: tid,
+        equippedThemeSurface: "liquid",
         dailyDealPurchasedKey: deal.dayKey + deal.id,
       });
     } else if (deal.unlockKey) {

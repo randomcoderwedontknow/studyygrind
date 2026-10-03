@@ -1,4 +1,6 @@
 import { themes } from "../data/themes";
+import { scalePrice } from "./pricing";
+import { todayKey } from "./dates";
 import { SHOP_GAME_UNLOCKS, SHOP_TITLE_ITEMS } from "../data/shop-catalog";
 import type { ThemeId } from "../types";
 
@@ -27,14 +29,14 @@ function hashSeed(s: string): number {
 const THEME_IDS = Object.keys(themes) as ThemeId[];
 
 export function dailyDealForUser(email: string, date = new Date()): DailyDeal {
-  const dayKey = date.toISOString().slice(0, 10);
+  const dayKey = todayKey(date);
   const seed = hashSeed(`${email}:${dayKey}`);
   const pool: Omit<DailyDeal, "dayKey" | "dealPrice" | "discountPct">[] = [
     ...THEME_IDS.filter((id) => id !== "green").map((id) => ({
       id: `theme-${id}`,
       name: themes[id].name,
-      description: "Liquid theme pack",
-      basePrice: themes[id].price,
+      description: "Normal + Liquid UI theme bundle",
+      basePrice: scalePrice(themes[id].price),
       kind: "theme" as const,
       themeId: id,
     })),
@@ -42,7 +44,7 @@ export function dailyDealForUser(email: string, date = new Date()): DailyDeal {
       id: g.id,
       name: g.name,
       description: g.description,
-      basePrice: g.price,
+      basePrice: scalePrice(g.price),
       kind: "unlock" as const,
       unlockKey: g.unlockKey,
     })),
@@ -50,7 +52,7 @@ export function dailyDealForUser(email: string, date = new Date()): DailyDeal {
       id: t.id,
       name: t.name,
       description: t.description,
-      basePrice: t.price,
+      basePrice: scalePrice(t.price),
       kind: "title" as const,
       unlockKey: t.unlockKey,
     })),

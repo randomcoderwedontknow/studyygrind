@@ -216,6 +216,63 @@ body.a11y-reduce-motion .study-cal-fire { animation: none; }
 
 body.a11y-reduce-motion .voice-mic-btn.recording { animation: none; }
 
+/* Classic / flat surface mode */
+body[data-surface="classic"] .app.liquid-app::before,
+body.a11y-liquid-off .app.liquid-app::before {
+  display: none;
+}
+
+body[data-surface="classic"] .app.liquid-app,
+body.a11y-liquid-off .app.liquid-app {
+  background: var(--bg);
+}
+
+body[data-surface="classic"] .liquid-surface,
+body[data-surface="classic"] .liquid-topbar,
+body.a11y-liquid-off .liquid-surface,
+body.a11y-liquid-off .liquid-topbar {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--card, var(--surface));
+  box-shadow: 0 1px 0 var(--border);
+}
+
+.simon-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 280px;
+  margin: 16px auto;
+}
+
+.simon-pad {
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 16px;
+  opacity: 0.75;
+  transition: opacity 0.12s, transform 0.12s;
+}
+
+.simon-pad.simon-lit,
+.simon-pad:active:not(:disabled) {
+  opacity: 1;
+  transform: scale(1.04);
+  box-shadow: 0 0 24px color-mix(in srgb, currentColor 40%, transparent);
+}
+
+.simon-pad:disabled {
+  cursor: default;
+}
+
+.reaction-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  text-align: center;
+}
+
 @keyframes micPulse {
   50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--danger) 20%, transparent); }
 }

@@ -4,6 +4,7 @@ import { studyRankFromUser, rankProgress } from "../data/ranks";
 import { PURCHASABLE_TITLES, CUSTOM_NAME_TITLE_ID, titleById } from "../data/titles";
 import { themeAppearance } from "../data/themes";
 import { CUSTOM_TITLE_UNLOCK_PRICE } from "../data/constants";
+import { shopDisplayPrice } from "../lib/pricing";
 import { WeeklyChart } from "../components/charts/WeeklyChart";
 import { PageTransition } from "../components/ui/PageTransition";
 import { PressableButton } from "../components/ui/PressableButton";
@@ -70,6 +71,25 @@ export function ProfilePage() {
         <h4>14-day trend</h4>
         <WeeklyChart history={user.weeklyHistory} />
       </section>
+
+      {(user.exams ?? []).some((e) => e.readinessAskedAt || e.readinessRating) && (
+        <section className="card">
+          <h4>Exam readiness journal</h4>
+          <ul className="soft" style={{ paddingLeft: 18 }}>
+            {(user.exams ?? [])
+              .filter((e) => e.readinessAskedAt || e.readinessRating)
+              .map((e) => {
+                const mins = user.sessionLog.filter((s) => s.examId === e.id).reduce((sum, s) => sum + s.minutes, 0);
+                return (
+                  <li key={e.id} style={{ marginBottom: 8 }}>
+                    <b>{e.title}</b> ({e.examDate}) — {e.readinessRating ? `${e.readinessRating}/5 ready` : "Skipped rating"} · {mins}m studied
+                    {e.readinessNote ? ` · ${e.readinessNote}` : ""}
+                  </li>
+                );
+              })}
+          </ul>
+        </section>
+      )}
 
       {user.recentMilestones && user.recentMilestones.length > 0 && (
         <section className="card">
@@ -157,7 +177,7 @@ export function ProfilePage() {
                   </PressableButton>
                 ) : (
                   <PressableButton variant="ghost" onClick={() => buyTitle(t.id, t.price)}>
-                    {t.price} pts
+                    {shopDisplayPrice(t.price, user.discount).toLocaleString()} pts
                   </PressableButton>
                 )}
               </div>

@@ -28,6 +28,17 @@ export function AccessibilityPage() {
 
       <section className="card liquid-surface">
         <div className="list-row">
+          <span>Use Liquid UI surfaces</span>
+          <button
+            type="button"
+            className={`toggle ${a.liquidUiEnabled !== false ? "on" : ""}`}
+            aria-pressed={a.liquidUiEnabled !== false}
+            onClick={() => patch({ liquidUiEnabled: a.liquidUiEnabled === false ? true : false })}
+          >
+            <span />
+          </button>
+        </div>
+        <div className="list-row">
           <span>Reduce motion</span>
           <button type="button" className={`toggle ${a.reduceMotion ? "on" : ""}`} aria-pressed={a.reduceMotion} onClick={() => patch({ reduceMotion: !a.reduceMotion })}>
             <span />

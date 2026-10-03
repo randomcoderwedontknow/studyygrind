@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import { STUDY_DAY_FIRE_MINUTES } from "../../data/constants";
+import { normalizeDateKey, todayKey } from "../../lib/dates";
 import type { SessionLogEntry } from "../../types";
 
 type Props = {
@@ -22,7 +23,7 @@ function monthMatrix(year: number, month: number): (Date | null)[][] {
 }
 
 function keyFor(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return todayKey(d);
 }
 
 export function StudyStreakCalendar({ history, sessionLog }: Props) {
@@ -38,7 +39,7 @@ export function StudyStreakCalendar({ history, sessionLog }: Props) {
   const pickedDetail = useMemo(() => {
     if (!picked) return null;
     const mins = history[picked] ?? 0;
-    const sessions = sessionLog.filter((s) => s.at.slice(0, 10) === picked).length;
+    const sessions = sessionLog.filter((s) => normalizeDateKey(s.at) === picked).length;
     return { mins, sessions };
   }, [picked, history, sessionLog]);
 

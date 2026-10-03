@@ -36,7 +36,14 @@ export function TimerPage() {
   const clampFocus = (n: number) => Math.min(180, Math.max(5, Math.round(n) || 25));
   const clampBreak = (n: number) => Math.min(30, Math.max(1, Math.round(n) || 5));
 
+  const [linkMode, setLinkMode] = useState<"general" | "task" | "exam">(() => {
+    if (selectedTaskId) return "task";
+    if (user?.selectedExamId) return "exam";
+    return "general";
+  });
+
   const selectedTask = user?.tasks.find((t) => t.id === selectedTaskId);
+  const selectedExam = user?.exams.find((e) => e.id === user.selectedExamId && !e.archived);
 
   const glowOn = user?.studyGlowEnabled ?? false;
   const particles = hasUnlock("effect-particles");
@@ -160,7 +167,13 @@ export function TimerPage() {
             <span className="tabular">
               {String(Math.floor(timer.secondsLeft / 60)).padStart(2, "0")}:{String(timer.secondsLeft % 60).padStart(2, "0")}
             </span>
-            <small>{selectedTask ? selectedTask.title : "General focus"}</small>
+            <small>
+              {linkMode === "task" && selectedTask
+                ? selectedTask.title
+                : linkMode === "exam" && selectedExam
+                  ? selectedExam.title
+                  : "General focus"}
+            </small>
             {timer.focusBlockCompleted && <small className="break">Full focus block done</small>}
           </div>
         </div>
@@ -235,17 +248,61 @@ export function TimerPage() {
         </div>
 
         <div className="timer-task-select">
-          <label className="soft">Link to task</label>
-          <select value={selectedTaskId} onChange={(e) => setSelectedTaskId(e.target.value)} aria-label="Select task for focus session">
-            <option value="">No task — general focus</option>
-            {user.tasks
-              .filter((t) => t.status !== "done")
-              .map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.title} ({t.category})
-                </option>
-              ))}
-          </select>
+          <label className="soft">Session focus</label>
+          <div className="chip-group" style={{ marginBottom: 8 }}>
+            {(["general", "task", "exam"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={`chip ${linkMode === m ? "chip-active" : ""}`}
+                onClick={() => {
+                  setLinkMode(m);
+                  if (m === "general") {
+                    setSelectedTaskId("");
+                    updateUser({ ...user, selectedExamId: "" });
+                  } else if (m === "task") {
+                    updateUser({ ...user, selectedExamId: "" });
+                  } else {
+                    setSelectedTaskId("");
+                  }
+                }}
+              >
+                {m === "general" ? "General" : m === "task" ? "Task" : "Exam"}
+              </button>
+            ))}
+          </div>
+          {linkMode === "task" && (
+            <select
+              value={selectedTaskId}
+              onChange={(e) => setSelectedTaskId(e.target.value)}
+              aria-label="Select task for focus session"
+            >
+              <option value="">Choose a task…</option>
+              {user.tasks
+                .filter((t) => t.status !== "done")
+                .map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title} ({t.category})
+                  </option>
+                ))}
+            </select>
+          )}
+          {linkMode === "exam" && (
+            <select
+              value={user.selectedExamId}
+              onChange={(e) => updateUser({ ...user, selectedExamId: e.target.value })}
+              aria-label="Select exam for focus session"
+            >
+              <option value="">Choose an exam…</option>
+              {(user.exams ?? [])
+                .filter((e) => !e.archived)
+                .map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.title}
+                  </option>
+                ))}
+            </select>
+          )}
         </div>
 
         <div className="soundscape-card">

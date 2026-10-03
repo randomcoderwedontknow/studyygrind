@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useStudyGrind } from "../../context/StudyGrindContext";
 import { PURCHASABLE_TITLES, CUSTOM_NAME_TITLE_ID, STARTER_TITLE_ID, titleById } from "../../data/titles";
 import { CUSTOM_TITLE_UNLOCK_PRICE } from "../../data/constants";
+import { shopDisplayPrice } from "../../lib/pricing";
 import { Modal } from "../ui/Modal";
 import { PressableButton } from "../ui/PressableButton";
 
@@ -71,7 +72,9 @@ export function TitleHubModal({ open, onClose }: { open: boolean; onClose: () =>
                     {user.equippedTitleId === t.id ? "Equipped" : "Equip"}
                   </PressableButton>
                 ) : (
-                  <PressableButton onClick={() => buyTitle(t.id, t.price)}>{t.price} pts</PressableButton>
+                  <PressableButton onClick={() => buyTitle(t.id, t.price)}>
+                    {shopDisplayPrice(t.price, user.discount).toLocaleString()} pts
+                  </PressableButton>
                 )}
               </article>
             );
@@ -99,8 +102,14 @@ export function TitleHubModal({ open, onClose }: { open: boolean; onClose: () =>
                 </PressableButton>
               </div>
             ) : (
-              <PressableButton onClick={() => setToast(`Unlock in Focus Shop titles tab (${CUSTOM_TITLE_UNLOCK_PRICE} pts)`)}>
-                {CUSTOM_TITLE_UNLOCK_PRICE} pts in shop
+              <PressableButton
+                onClick={() =>
+                  setToast(
+                    `Unlock in Focus Shop titles tab (${shopDisplayPrice(CUSTOM_TITLE_UNLOCK_PRICE, user.discount).toLocaleString()} pts)`,
+                  )
+                }
+              >
+                {shopDisplayPrice(CUSTOM_TITLE_UNLOCK_PRICE, user.discount).toLocaleString()} pts in shop
               </PressableButton>
             )}
           </article>

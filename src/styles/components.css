@@ -485,6 +485,7 @@ body.platform-android .modal-handle {
   transition: opacity var(--dur-base) ease, transform var(--dur-base) var(--ease-out);
   will-change: transform;
 }
+.bottom-nav-item.nav-locked { opacity: 0.45; }
 .bottom-nav-item.active { color: var(--primary); }
 .bottom-nav-item.active .nav-pill { opacity: 1; transform: scale(1); }
 .bottom-nav-item svg, .bottom-nav-item span { position: relative; z-index: 1; }
