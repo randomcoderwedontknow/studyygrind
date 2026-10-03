@@ -319,7 +319,7 @@ export function ShopPage() {
               className={`theme-card ${user.equippedTheme === t.id ? "equipped" : ""}`}
               style={{ "--theme-color": t.color } as React.CSSProperties}
             >
-              <div className="row" style={{ gap: 6 }}>
+              <div className="theme-swatch-strip" aria-hidden>
                 <div className="theme-swatch" style={swatchClassic} title="Normal preview" />
                 <div className="theme-swatch" style={swatchLiquid} title="Liquid preview" />
               </div>
@@ -373,15 +373,19 @@ export function ShopPage() {
 
       return (
         <article key={id} className={`theme-card ${user.equippedTheme === id ? "equipped" : ""}`}>
-          <div className="row" style={{ gap: 6 }}>
-            {hasClassic && (
+          {hasClassic && hasLiquid ? (
+            <div className="theme-swatch-strip" aria-hidden>
               <div className="theme-swatch" style={themeSwatchStyle(themeAppearance(id, [], user.savedCustomThemes, "classic"))} />
-            )}
-            {hasLiquid && (
               <div className="theme-swatch" style={themeSwatchStyle(themeAppearance(id, [], user.savedCustomThemes, "liquid"))} />
-            )}
-            {!hasClassic && !hasLiquid && <div className="theme-swatch" style={themeSwatchStyle(meta)} />}
-          </div>
+            </div>
+          ) : (
+            <div
+              className="theme-swatch"
+              style={themeSwatchStyle(
+                themeAppearance(id, [], user.savedCustomThemes, hasLiquid ? "liquid" : "classic"),
+              )}
+            />
+          )}
           <div className="theme-body">
             <b>{meta.name}</b>
             <small>

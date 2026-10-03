@@ -6,8 +6,7 @@ export function themeSwatchStyle(meta: {
 }): { background: string; backgroundImage?: string } {
   if (meta.color2) {
     return {
-      background: meta.color,
-      backgroundImage: `linear-gradient(135deg, ${meta.color} 0%, ${meta.color2} 100%)`,
+      background: `linear-gradient(135deg, ${meta.color} 0%, ${meta.color2} 100%)`,
     };
   }
   return { background: meta.color };
