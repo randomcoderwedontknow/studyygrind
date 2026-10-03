@@ -14,7 +14,11 @@ export type Tab =
   | "themeStudio"
   | "ownerSettings"
   | "achievements"
-  | "accessibility";
+  | "accessibility"
+  | "betaHome"
+  | "focusPresetLab"
+  | "routineBuilder"
+  | "goals";
 
 export type ThemeId =
   | "green"
@@ -133,6 +137,37 @@ export type FocusProfile = {
   timerEndSoundId: string;
   focusLockOn: boolean;
   lockedTabs: Tab[];
+};
+
+export type StudyRoutineStep =
+  | { id: string; kind: "focus"; focusMin: number; breakMin: number; label?: string }
+  | { id: string; kind: "break"; breakMin: number }
+  | { id: string; kind: "prompt"; text: string };
+
+export type StudyRoutine = {
+  id: string;
+  name: string;
+  steps: StudyRoutineStep[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type GoalMilestone = { id: string; label: string; done: boolean };
+
+export type SemesterGoal = {
+  id: string;
+  title: string;
+  notes?: string;
+  targetDate?: string;
+  milestones: GoalMilestone[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ActiveRoutineState = {
+  routineId: string;
+  stepIndex: number;
+  startedAt: string;
 };
 
 export type WishlistEntry = {
@@ -404,6 +439,11 @@ export type UserData = {
   accessibility: AccessibilityPrefs;
   seenReleaseVersion: string;
   dailyDealPurchasedKey: string;
+  betaProgramAccess?: boolean;
+  betaShellActive?: boolean;
+  studyRoutines?: StudyRoutine[];
+  semesterGoals?: SemesterGoal[];
+  activeRoutine?: ActiveRoutineState | null;
 };
 
 export type AppStore = {
@@ -426,6 +466,7 @@ export type AppStore = {
   forceMode: ForceMode;
   quickReplies: string[];
   maintenanceMode: boolean;
+  betaProgramEnabled: boolean;
 };
 
 export type Booster = {

@@ -37,6 +37,7 @@ import { NotificationsModal } from "./NotificationsModal";
 import { BottomNav } from "./BottomNav";
 import { Sidebar } from "./Sidebar";
 import { WhatsNewModal } from "../WhatsNewModal";
+import { BetaAppShell } from "./BetaAppShell";
 
 const TAB_ICONS: Partial<Record<Tab, React.ReactNode>> = {
   home: <Home size={18} />,
@@ -96,6 +97,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     whatsNewOpen,
     closeWhatsNew,
     updateUser,
+    isBetaShell,
   } = useStudyGrind();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [readinessExamId, setReadinessExamId] = useState<string | null>(null);
@@ -129,6 +131,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [user?.exams, user?.email]);
 
   if (!user) return null;
+
+  if (isBetaShell) {
+    return <BetaAppShell>{children}</BetaAppShell>;
+  }
 
   const hasNotificationBadge = hasUnreadNotifications(user, store);
   const readinessExam = (user.exams ?? []).find((e) => e.id === readinessExamId) ?? null;

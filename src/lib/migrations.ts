@@ -101,6 +101,18 @@ function migrateToV11(u: UserData): UserData {
   return {
     ...u,
     rotatingThemeVariantsOwned,
+    dataVersion: 11,
+  };
+}
+
+function migrateToV12(u: UserData): UserData {
+  return {
+    ...u,
+    betaProgramAccess: u.betaProgramAccess ?? false,
+    betaShellActive: u.betaShellActive ?? false,
+    studyRoutines: u.studyRoutines ?? [],
+    semesterGoals: u.semesterGoals ?? [],
+    activeRoutine: u.activeRoutine ?? null,
     dataVersion: DATA_VERSION,
   };
 }
@@ -331,6 +343,11 @@ export function defaultUser(email: string, password: string, username: string): 
     },
     seenReleaseVersion: "",
     dailyDealPurchasedKey: "",
+    betaProgramAccess: false,
+    betaShellActive: false,
+    studyRoutines: [],
+    semesterGoals: [],
+    activeRoutine: null,
     dataVersion: DATA_VERSION,
   };
 }
@@ -547,6 +564,11 @@ export function migrateUser(k: string, v: Partial<UserData>): UserData {
     },
     seenReleaseVersion: typeof v.seenReleaseVersion === "string" ? v.seenReleaseVersion : "",
     dailyDealPurchasedKey: typeof v.dailyDealPurchasedKey === "string" ? v.dailyDealPurchasedKey : "",
+    betaProgramAccess: v.betaProgramAccess ?? false,
+    betaShellActive: v.betaShellActive ?? false,
+    studyRoutines: v.studyRoutines ?? [],
+    semesterGoals: v.semesterGoals ?? [],
+    activeRoutine: v.activeRoutine ?? null,
     lastStudyDate: normalizeDateKey(v.lastStudyDate ?? ""),
     lastActiveDate: normalizeDateKey(v.lastActiveDate ?? ""),
     streakShields,
@@ -566,8 +588,11 @@ export function migrateUser(k: string, v: Partial<UserData>): UserData {
   if ((merged.dataVersion ?? 0) < 10) {
     merged = migrateToV10(merged);
   }
-  if ((merged.dataVersion ?? 0) < DATA_VERSION) {
+  if ((merged.dataVersion ?? 0) < 11) {
     merged = migrateToV11(merged);
+  }
+  if ((merged.dataVersion ?? 0) < DATA_VERSION) {
+    merged = migrateToV12(merged);
   }
   return backfillTrophies(merged);
 }
@@ -584,6 +609,7 @@ export function migrateStore(parsed: Partial<AppStore> & { users?: Record<string
       banned: false,
       suspendedUntil: "",
       muted: false,
+      betaProgramAccess: true,
     };
   }
   const announcement =
@@ -616,6 +642,7 @@ export function migrateStore(parsed: Partial<AppStore> & { users?: Record<string
       "One more focused session — momentum is yours.",
     ],
     maintenanceMode: parsed.maintenanceMode ?? false,
+    betaProgramEnabled: parsed.betaProgramEnabled ?? false,
   };
 }
 
@@ -636,4 +663,8 @@ export const TAB_META: Record<Tab, { label: string; description: string }> = {
   ownerSettings: { label: "Owner Settings", description: "Owner admin tools." },
   achievements: { label: "Achievements", description: "Trophies, milestones, and weekly titles." },
   accessibility: { label: "Accessibility", description: "Motion, text, contrast, and touch." },
+  betaHome: { label: "Beta", description: "Beta program hub." },
+  focusPresetLab: { label: "Preset Lab", description: "Focus timer presets." },
+  routineBuilder: { label: "Routines", description: "Multi-step study routines." },
+  goals: { label: "Goals", description: "Long-term goals and milestones." },
 };

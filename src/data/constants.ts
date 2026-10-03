@@ -1,6 +1,6 @@
 export const STORE_KEY = "studygrind_v2";
-export const DATA_VERSION = 11;
-export const APP_RELEASE_VERSION = "12.2.7";
+export const DATA_VERSION = 12;
+export const APP_RELEASE_VERSION = "12.2.8";
 /** Multiplier applied to shop/theme/unlock base prices (12.2.6 economy). */
 export const PRICE_SCALE = 3.5;
 /** Liquid UI theme variant costs this much more than classic (on scaled classic price). */

@@ -9,10 +9,11 @@ import { HorizontalTabBar } from "../components/ui/HorizontalTabBar";
 import { Modal } from "../components/ui/Modal";
 import type { Role, ThemeId, UserData } from "../types";
 
-type Section = "personal" | "users" | "themes" | "broadcast" | "moderation" | "mentor" | "system";
+type Section = "personal" | "users" | "themes" | "broadcast" | "moderation" | "mentor" | "beta" | "system";
 
 const SECTIONS: { id: Section; label: string }[] = [
   { id: "personal", label: "Personal" },
+  { id: "beta", label: "Beta" },
   { id: "users", label: "Users" },
   { id: "themes", label: "Themes" },
   { id: "broadcast", label: "Broadcast" },
@@ -99,6 +100,7 @@ export function OwnerSettingsPage() {
       {section === "broadcast" && <BroadcastSection />}
       {section === "moderation" && <ModerationSection />}
       {section === "mentor" && <MentorSection />}
+      {section === "beta" && <BetaProgramSection />}
       {section === "system" && <SystemSection />}
     </PageTransition>
   );
@@ -293,6 +295,7 @@ function UsersSection() {
                   <span className="pill">{u.role}</span>
                   {u.vipAccess && <span className="pill">VIP</span>}
                   {u.honoraryAccess && <span className="pill">Honour</span>}
+                  {u.betaProgramAccess && <span className="pill">Beta</span>}
                   {u.banned && <span className="pill danger">Banned</span>}
                   {u.muted && <span className="pill">Muted</span>}
                 </div>
@@ -334,6 +337,21 @@ function UsersSection() {
           <div className="setting-row">
             <span>Honourable access</span>
             <Toggle on={target.honoraryAccess} label="Honour" onClick={() => patch({ honoraryAccess: !target.honoraryAccess })} />
+          </div>
+          <div className="setting-row">
+            <span>Beta program access</span>
+            <Toggle
+              on={Boolean(target.betaProgramAccess)}
+              label="Beta access"
+              onClick={() => {
+                const enabling = !target.betaProgramAccess;
+                patch({ betaProgramAccess: enabling });
+                if (enabling) {
+                  patchStore({ betaProgramEnabled: true });
+                }
+                setToast(enabling ? "Beta access granted — user can enter from Settings." : "Beta access revoked.");
+              }}
+            />
           </div>
 
           <h5>Expiry</h5>
@@ -870,6 +888,62 @@ function ModerationSection() {
           ))}
         </section>
       )}
+    </>
+  );
+}
+
+/* ---------------- Beta program ---------------- */
+
+function BetaProgramSection() {
+  const { store, patchStore, enterBetaShell, leaveBetaShell, user, setToast, updateUser } = useStudyGrind();
+  if (!user) return null;
+  return (
+    <>
+      <section className="card owner-panel">
+        <h4>Beta program</h4>
+        <p className="soft">
+          When enabled, enrolled users see Enter beta area in Settings. The beta shell only shows Preset Lab, Routines,
+          Goals, Timer, and slim Settings.
+        </p>
+        <div className="setting-row">
+          <span>Beta program enabled</span>
+          <Toggle
+            on={store.betaProgramEnabled}
+            label="Beta program enabled"
+            onClick={() => {
+              patchStore({ betaProgramEnabled: !store.betaProgramEnabled });
+              setToast(store.betaProgramEnabled ? "Beta program disabled." : "Beta program enabled.");
+            }}
+          />
+        </div>
+        <div className="row wrap" style={{ marginTop: 12 }}>
+          <PressableButton
+            onClick={() => {
+              enterBetaShell();
+              setToast("Previewing beta shell.");
+            }}
+          >
+            Preview beta shell
+          </PressableButton>
+          {user.betaShellActive && (
+            <PressableButton variant="ghost" onClick={leaveBetaShell}>
+              Leave beta preview
+            </PressableButton>
+          )}
+        </div>
+        <p className="soft">
+          Turn on Beta program enabled so enrolled users see Enter beta in Settings. Grant each user under Users → Beta
+          program access.
+        </p>
+        {!user.betaProgramAccess && user.role === "owner" && (
+          <PressableButton
+            variant="ghost"
+            onClick={() => updateUser({ ...user, betaProgramAccess: true })}
+          >
+            Mark my account as beta-enrolled
+          </PressableButton>
+        )}
+      </section>
     </>
   );
 }

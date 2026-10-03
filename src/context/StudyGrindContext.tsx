@@ -47,6 +47,7 @@ import { themes, vipThemes, honoraryThemes } from "../data/themes";
 import { studyRankFromUser } from "../data/ranks";
 import { titleById, CUSTOM_NAME_TITLE_ID, STARTER_TITLE } from "../data/titles";
 import { migrateStore, defaultUser, isToday, TAB_META, resetUserAccount } from "../lib/migrations";
+import { BETA_ONLY_TABS, BETA_SHELL_TABS, canEnterBetaProgram, isBetaShell as userInBetaShell } from "../lib/beta-shell";
 import { applyMilestones, detectMilestones } from "../lib/milestones";
 import { applyTrophyUnlocks, detectNewTrophies } from "../lib/trophies";
 import {
@@ -76,6 +77,8 @@ import type {
   Tab,
   ThemeId,
   FocusProfile,
+  SemesterGoal,
+  StudyRoutine,
   WishlistEntry,
   TimerSnapshot,
   UserData,
@@ -94,6 +97,7 @@ export type OwnerStorePatch = Partial<
     | "forceMode"
     | "maintenanceMode"
     | "ownerSwitchWarningSeen"
+    | "betaProgramEnabled"
   >
 >;
 
@@ -190,6 +194,19 @@ type Ctx = {
   refreshMaintenance: () => Promise<void>;
   whatsNewOpen: boolean;
   closeWhatsNew: () => void;
+  isBetaShell: boolean;
+  enterBetaShell: () => void;
+  leaveBetaShell: () => void;
+  upsertFocusProfile: (profile: FocusProfile) => boolean;
+  addRoutine: (name: string) => string | null;
+  updateRoutine: (id: string, patch: Partial<Pick<StudyRoutine, "name" | "steps">>) => void;
+  deleteRoutine: (id: string) => void;
+  startRoutine: (routineId: string) => void;
+  advanceRoutineStep: () => void;
+  cancelActiveRoutine: () => void;
+  addGoal: (title: string) => string | null;
+  updateGoal: (id: string, patch: Partial<Pick<SemesterGoal, "title" | "notes" | "targetDate" | "milestones">>) => void;
+  deleteGoal: (id: string) => void;
 };
 
 const StudyGrindContext = createContext<Ctx | null>(null);
@@ -604,9 +621,22 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
     [user],
   );
 
+  const betaShellActive = userInBetaShell(user, store);
+
   const goTab = useCallback(
     (next: Tab, opts?: { closeMenu?: boolean }) => {
       const u = store.users[store.current];
+      const inBeta = userInBetaShell(u, store);
+      if (inBeta && !BETA_SHELL_TABS.includes(next)) {
+        setToast("Leave beta area to open the full app.");
+        return;
+      }
+      if (!inBeta && BETA_ONLY_TABS.includes(next)) {
+        setToast("Enter beta area from Settings.");
+        setTab("settings");
+        if (opts?.closeMenu) setMenuOpen(false);
+        return;
+      }
       if (u?.focusLockOn && timerRunning && u.lockedTabs.includes(next)) {
         setToast("Locked — turn off Focus Lock or end your session.");
         return;
@@ -631,8 +661,57 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
       setTab(next);
       if (opts?.closeMenu) setMenuOpen(false);
     },
-    [store.current, store.users, timerRunning, hasUnlock, user?.role],
+    [store.current, store.users, store.betaProgramEnabled, timerRunning, hasUnlock, user?.role],
   );
+
+  const enterBetaShell = useCallback(() => {
+    setStore((p) => {
+      const u = p.users[p.current];
+      if (!u) return p;
+      if (!canEnterBetaProgram(u, p)) {
+        setToast(
+          u.role === "owner"
+            ? "Could not enter beta — sign in again."
+            : "No beta access yet. Ask the owner to enable Beta program access for your account.",
+        );
+        return p;
+      }
+      const next = { ...u, betaShellActive: true };
+      setTab("betaHome");
+      setMenuOpen(false);
+      setToast("Welcome to the beta area.");
+      return { ...p, users: { ...p.users, [u.email]: next } };
+    });
+  }, [setStore, setTab, setMenuOpen, setToast]);
+
+  const leaveBetaShell = useCallback(() => {
+    if (!user) return;
+    updateUser({ ...user, betaShellActive: false, activeRoutine: null });
+    setTab("home");
+    setMenuOpen(false);
+    setToast("Back to the full app.");
+  }, [user, updateUser]);
+
+  useEffect(() => {
+    if (!user?.betaShellActive) return;
+    if (!canEnterBetaProgram(user, store)) {
+      updateUser({ ...user, betaShellActive: false, activeRoutine: null });
+      setTab("home");
+      setToast("Beta access ended — returned to main app.");
+    }
+  }, [user, store, updateUser, setTab, setToast]);
+
+  useEffect(() => {
+    if (!user?.betaShellActive || !canEnterBetaProgram(user, store)) return;
+    setTab((current) => (BETA_SHELL_TABS.includes(current) ? current : "betaHome"));
+  }, [store.current, user?.betaShellActive, store.betaProgramEnabled]);
+
+  useEffect(() => {
+    document.body.dataset.appMode = betaShellActive ? "beta" : "main";
+    return () => {
+      document.body.dataset.appMode = "main";
+    };
+  }, [betaShellActive]);
 
   const equippedThemeId = user?.equippedTheme ?? "green";
   const activeThemeId = previewTheme ?? equippedThemeId;
@@ -1034,6 +1113,145 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
     setToast("Profile deleted.");
   };
 
+  const upsertFocusProfile = (profile: FocusProfile): boolean => {
+    if (!user) return false;
+    const cap = maxFocusProfiles();
+    const exists = user.focusProfiles.some((p) => p.id === profile.id);
+    let profiles = user.focusProfiles;
+    if (exists) {
+      profiles = profiles.map((p) => (p.id === profile.id ? profile : p));
+    } else if (profiles.length >= cap) {
+      setToast(`Profile limit (${cap}). Delete one first.`);
+      return false;
+    } else {
+      profiles = [...profiles, profile];
+    }
+    updateUser({ ...user, focusProfiles: profiles, activeFocusProfileId: profile.id });
+    setToast(exists ? "Preset updated." : "Preset saved.");
+    return true;
+  };
+
+  const addRoutine = (name: string): string | null => {
+    if (!user) return null;
+    const trimmed = name.trim().slice(0, 48);
+    if (!trimmed) return null;
+    const now = new Date().toISOString();
+    const routine: StudyRoutine = {
+      id: crypto.randomUUID(),
+      name: trimmed,
+      steps: [{ id: crypto.randomUUID(), kind: "focus", focusMin: 25, breakMin: 5 }],
+      createdAt: now,
+      updatedAt: now,
+    };
+    updateUser({ ...user, studyRoutines: [...(user.studyRoutines ?? []), routine] });
+    setToast("Routine created.");
+    return routine.id;
+  };
+
+  const updateRoutine = (id: string, patch: Partial<Pick<StudyRoutine, "name" | "steps">>) => {
+    if (!user) return;
+    const routines = (user.studyRoutines ?? []).map((r) =>
+      r.id === id ? { ...r, ...patch, updatedAt: new Date().toISOString() } : r,
+    );
+    updateUser({ ...user, studyRoutines: routines });
+  };
+
+  const deleteRoutine = (id: string) => {
+    if (!user) return;
+    const routines = (user.studyRoutines ?? []).filter((r) => r.id !== id);
+    updateUser({
+      ...user,
+      studyRoutines: routines,
+      activeRoutine: user.activeRoutine?.routineId === id ? null : user.activeRoutine,
+    });
+    setToast("Routine deleted.");
+  };
+
+  const startRoutine = (routineId: string) => {
+    if (!user) return;
+    const routine = (user.studyRoutines ?? []).find((r) => r.id === routineId);
+    if (!routine?.steps.length) return setToast("Add at least one step.");
+    const step = routine.steps[0];
+    const durationPatch =
+      step.kind === "focus"
+        ? { focusDurationMin: step.focusMin, breakDurationMin: step.breakMin }
+        : step.kind === "break"
+          ? { breakDurationMin: step.breakMin }
+          : {};
+    updateUser({
+      ...user,
+      ...durationPatch,
+      activeRoutine: { routineId, stepIndex: 0, startedAt: new Date().toISOString() },
+    });
+    setTab("timer");
+    setToast(`Routine started: ${routine.name}`);
+  };
+
+  const advanceRoutineStep = () => {
+    if (!user?.activeRoutine) return;
+    const routine = (user.studyRoutines ?? []).find((r) => r.id === user.activeRoutine?.routineId);
+    if (!routine) {
+      updateUser({ ...user, activeRoutine: null });
+      return;
+    }
+    const nextIndex = user.activeRoutine.stepIndex + 1;
+    if (nextIndex >= routine.steps.length) {
+      updateUser({ ...user, activeRoutine: null });
+      setToast("Routine complete!");
+      return;
+    }
+    const step = routine.steps[nextIndex];
+    const durationPatch =
+      step.kind === "focus"
+        ? { focusDurationMin: step.focusMin, breakDurationMin: step.breakMin }
+        : step.kind === "break"
+          ? { breakDurationMin: step.breakMin }
+          : {};
+    updateUser({
+      ...user,
+      ...durationPatch,
+      activeRoutine: { ...user.activeRoutine, stepIndex: nextIndex },
+    });
+    if (step.kind === "prompt") setToast(step.text);
+  };
+
+  const cancelActiveRoutine = () => {
+    if (!user) return;
+    updateUser({ ...user, activeRoutine: null });
+    setToast("Routine cancelled.");
+  };
+
+  const addGoal = (title: string): string | null => {
+    if (!user) return null;
+    const trimmed = title.trim().slice(0, 80);
+    if (!trimmed) return null;
+    const now = new Date().toISOString();
+    const goal: SemesterGoal = {
+      id: crypto.randomUUID(),
+      title: trimmed,
+      milestones: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    updateUser({ ...user, semesterGoals: [...(user.semesterGoals ?? []), goal] });
+    setToast("Goal added.");
+    return goal.id;
+  };
+
+  const updateGoal = (id: string, patch: Partial<Pick<SemesterGoal, "title" | "notes" | "targetDate" | "milestones">>) => {
+    if (!user) return;
+    const goals = (user.semesterGoals ?? []).map((g) =>
+      g.id === id ? { ...g, ...patch, updatedAt: new Date().toISOString() } : g,
+    );
+    updateUser({ ...user, semesterGoals: goals });
+  };
+
+  const deleteGoal = (id: string) => {
+    if (!user) return;
+    updateUser({ ...user, semesterGoals: (user.semesterGoals ?? []).filter((g) => g.id !== id) });
+    setToast("Goal removed.");
+  };
+
   const getDailyQuest = () => {
     if (!user) return null;
     return questById(user.dailyQuestId) ?? pickDailyQuest(user.email, user.dailyQuestDate || todayKey());
@@ -1397,6 +1615,19 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
         updateUser({ ...u, seenReleaseVersion: APP_RELEASE_VERSION });
       }
     },
+    isBetaShell: betaShellActive,
+    enterBetaShell,
+    leaveBetaShell,
+    upsertFocusProfile,
+    addRoutine,
+    updateRoutine,
+    deleteRoutine,
+    startRoutine,
+    advanceRoutineStep,
+    cancelActiveRoutine,
+    addGoal,
+    updateGoal,
+    deleteGoal,
   };
 
   return <StudyGrindContext.Provider value={value}>{children}</StudyGrindContext.Provider>;

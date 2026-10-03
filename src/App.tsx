@@ -22,19 +22,31 @@ import { OwnerSettingsPage } from "./pages/OwnerSettingsPage";
 import { MaintenancePage } from "./pages/MaintenancePage";
 import { AchievementsPage } from "./pages/AchievementsPage";
 import { AccessibilityPage } from "./pages/AccessibilityPage";
+import { BetaHomePage } from "./pages/beta/BetaHomePage";
+import { FocusPresetLabPage } from "./pages/beta/FocusPresetLabPage";
+import { RoutineBuilderPage } from "./pages/beta/RoutineBuilderPage";
+import { GoalsPage } from "./pages/beta/GoalsPage";
+import { BetaShellGate } from "./components/beta/BetaShellGate";
+import { BETA_SHELL_TABS } from "./lib/beta-shell";
 
 function AppRoutes() {
-  const { store, user, tab, setTab, hasUnlock, setToast, maintenance } = useStudyGrind();
+  const { store, user, tab, setTab, hasUnlock, setToast, maintenance, isBetaShell } = useStudyGrind();
 
   useEffect(() => {
-    if (!user || canAccessTab(tab, user, hasUnlock)) return;
+    if (isBetaShell && user && !BETA_SHELL_TABS.includes(tab)) {
+      setTab("betaHome");
+    }
+  }, [isBetaShell, tab, user, setTab]);
+
+  useEffect(() => {
+    if (!user || canAccessTab(tab, user, hasUnlock, store)) return;
     if (tab === "ownerSettings") {
       setTab("settings");
       return;
     }
     setToast("Unlock this page in the Focus Shop first.");
     setTab("shop");
-  }, [tab, user, hasUnlock, setTab, setToast]);
+  }, [tab, user, hasUnlock, setTab, setToast, store]);
 
   // Maintenance lockout: remote flag (Supabase) with local cache fallback. Owner always passes.
   const maintenanceOn = maintenance.on || (!maintenance.remoteOk && store.maintenanceMode);
@@ -43,9 +55,12 @@ function AppRoutes() {
   if (!store.seenOnboarding) return <OnboardingPage />;
   if (!user) return <AuthPage />;
 
-  const locked = !canAccessTab(tab, user, hasUnlock);
+  const locked = !canAccessTab(tab, user, hasUnlock, store);
 
-  let page = <HomePage />;
+  const betaWrap = (node: React.ReactNode) =>
+    isBetaShell ? node : <BetaShellGate>{node}</BetaShellGate>;
+
+  let page: React.ReactNode = <HomePage />;
   switch (tab) {
     case "home":
       page = <HomePage />;
@@ -94,6 +109,18 @@ function AppRoutes() {
       break;
     case "accessibility":
       page = <AccessibilityPage />;
+      break;
+    case "betaHome":
+      page = betaWrap(<BetaHomePage />);
+      break;
+    case "focusPresetLab":
+      page = betaWrap(<FocusPresetLabPage />);
+      break;
+    case "routineBuilder":
+      page = betaWrap(<RoutineBuilderPage />);
+      break;
+    case "goals":
+      page = betaWrap(<GoalsPage />);
       break;
   }
 

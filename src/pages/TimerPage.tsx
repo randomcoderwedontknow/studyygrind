@@ -13,7 +13,17 @@ import { PageTransition } from "../components/ui/PageTransition";
 import { PressableButton } from "../components/ui/PressableButton";
 
 export function TimerPage() {
-  const { user, updateUser, hasUnlock, selectedTaskId, setSelectedTaskId, applyFocusProfile, saveFocusProfile } = useStudyGrind();
+  const {
+    user,
+    updateUser,
+    hasUnlock,
+    selectedTaskId,
+    setSelectedTaskId,
+    applyFocusProfile,
+    saveFocusProfile,
+    advanceRoutineStep,
+    cancelActiveRoutine,
+  } = useStudyGrind();
   const timer = useFocusTimer();
   const {
     moodBefore,
@@ -125,8 +135,30 @@ export function TimerPage() {
     </div>
   );
 
+  const activeRoutine = user?.activeRoutine;
+  const routineMeta = activeRoutine
+    ? (user?.studyRoutines ?? []).find((r) => r.id === activeRoutine.routineId)
+    : null;
+  const routineStep = routineMeta?.steps[activeRoutine?.stepIndex ?? 0];
+
   return (
     <PageTransition stagger>
+      {activeRoutine && routineMeta && (
+        <section className="card beta-routine-banner">
+          <b>
+            Routine: {routineMeta.name} — Step {(activeRoutine.stepIndex ?? 0) + 1}/{routineMeta.steps.length}
+          </b>
+          {routineStep?.kind === "prompt" && <p className="soft">{routineStep.text}</p>}
+          <div className="row wrap">
+            <PressableButton variant="ghost" onClick={advanceRoutineStep}>
+              {routineStep?.kind === "prompt" ? "Done — next step" : "Next step"}
+            </PressableButton>
+            <PressableButton variant="ghost" onClick={cancelActiveRoutine}>
+              Cancel routine
+            </PressableButton>
+          </div>
+        </section>
+      )}
       <section className={`card timer-card liquid-timer timer-phase-${timer.phase} ${glowOn ? "timer-glow-ready" : ""}`}>
         <div className="timer-liquid-backdrop" aria-hidden="true">
           <div className="timer-blob b1" />

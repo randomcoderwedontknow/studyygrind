@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { Accessibility, Bell, Database, LogOut, Moon, RotateCcw, Share2, ShieldCheck, Vibrate, Volume2 } from "lucide-react";
+import { Accessibility, Bell, Database, FlaskConical, LogOut, Moon, RotateCcw, Share2, ShieldCheck, Vibrate, Volume2 } from "lucide-react";
+import { shouldShowBetaEntry } from "../lib/beta-shell";
 import { Share } from "@capacitor/share";
 import { useStudyGrind } from "../context/StudyGrindContext";
 import { STUDYGRIND_APK_DOWNLOAD_URL } from "../data/constants";
@@ -56,12 +57,52 @@ function Toggle({ on, onClick, label, disabled }: { on: boolean; onClick: () => 
 }
 
 export function SettingsPage() {
-  const { user, updateUser, setStore, setToast, goTab, store } = useStudyGrind();
+  const { user, updateUser, setStore, setToast, goTab, store, enterBetaShell, leaveBetaShell, isBetaShell } = useStudyGrind();
   const importRef = useRef<HTMLInputElement>(null);
   const [focusLockModal, setFocusLockModal] = useState(false);
   if (!user) return null;
 
   const isOwner = user.role === "owner";
+  const showBetaEntry = shouldShowBetaEntry(user, store);
+
+  if (isBetaShell) {
+    return (
+      <PageTransition>
+        <section className="card">
+          <h4>
+            <FlaskConical size={16} /> Beta settings
+          </h4>
+          <p className="soft">Minimal settings while testing beta features.</p>
+          <PressableButton onClick={leaveBetaShell}>Leave beta area</PressableButton>
+        </section>
+        <section className="card">
+          <Row icon={<Moon size={18} />} label="Dark mode" hint="Appearance in beta shell">
+            <Toggle
+              on={user.darkMode}
+              label="Dark mode"
+              onClick={() => updateUser({ ...user, darkMode: !user.darkMode })}
+            />
+          </Row>
+        </section>
+        <section className="card">
+          <PressableButton variant="ghost" onClick={() => goTab("accessibility")}>
+            <Accessibility size={16} /> Accessibility
+          </PressableButton>
+        </section>
+        <section className="card">
+          <PressableButton
+            variant="ghost"
+            onClick={() => {
+              setStore((p) => ({ ...p, current: "" }));
+              setToast("Signed out.");
+            }}
+          >
+            <LogOut size={16} /> Sign out
+          </PressableButton>
+        </section>
+      </PageTransition>
+    );
+  }
   const reminderHour = user.reminderHour ?? 17;
   const reminderMinute = user.reminderMinute ?? 0;
 
@@ -268,6 +309,18 @@ export function SettingsPage() {
         </PressableButton>
       </section>
 
+      {showBetaEntry && (
+        <section className="card beta-entry-card">
+          <div>
+            <h4>
+              <FlaskConical size={16} /> Beta program
+            </h4>
+            <p className="soft">Try Focus Preset Lab, Routine Builder, and Goals in a simplified app shell.</p>
+          </div>
+          <PressableButton onClick={enterBetaShell}>Enter beta area</PressableButton>
+        </section>
+      )}
+
       {isOwner && (
         <section className="card owner-entry-card">
           <div>
@@ -306,7 +359,7 @@ export function SettingsPage() {
           Signed in as <b>{user.username}</b>
           {user.role !== "user" ? ` · ${user.role}` : ""}
         </p>
-        <p className="soft settings-version">StudyGrind v12.2.7</p>
+        <p className="soft settings-version">StudyGrind v12.2.8</p>
       </section>
     </PageTransition>
   );

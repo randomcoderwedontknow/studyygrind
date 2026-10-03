@@ -1288,3 +1288,54 @@ button.linkish { background: transparent; color: var(--primary); border: none; m
 @media (min-width: 768px) {
   .trophy-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+body[data-app-mode="beta"] .beta-app { min-height: 100dvh; }
+.beta-app-body { display: flex; flex: 1; min-height: 0; }
+.beta-sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--surface);
+}
+.beta-sidebar-head { display: flex; align-items: center; gap: 8px; font-family: var(--font-head); }
+.beta-sidebar-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.beta-nav-item {
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-weight: 600;
+}
+.beta-nav-item.active { background: var(--tint-12); color: var(--primary); }
+.beta-leave-btn { margin-top: auto; }
+.beta-topbar { border-bottom: 1px solid var(--border); }
+.beta-feature-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+@media (min-width: 640px) {
+  .beta-feature-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.beta-feature-card { cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
+.beta-feature-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-content: center;
+  background: var(--tint-12);
+  color: var(--primary);
+}
+.beta-hero { margin-bottom: 8px; }
+.beta-editor { display: flex; flex-direction: column; gap: 10px; }
+.beta-step-card { margin-top: 8px; }
+.beta-routine-banner { margin-bottom: 12px; border-color: color-mix(in srgb, var(--primary) 35%, var(--border)); }
+.beta-bottom-nav .bottom-nav-item { font-size: 10px; }
+.beta-bottom-nav .bottom-nav-item span:last-child { max-width: 52px; overflow: hidden; text-overflow: ellipsis; }
