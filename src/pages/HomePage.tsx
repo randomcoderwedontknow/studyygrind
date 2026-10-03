@@ -19,6 +19,7 @@ import { isToday } from "../lib/migrations";
 import { RECAP_OPEN_FLAG, recapNoticeWeekKey, shouldShowRecapNotice } from "../lib/recap";
 import { hapticSelection } from "../lib/haptics";
 import { OWNER_EMAIL } from "../data/constants";
+import { NumericInput } from "../components/ui/NumericInput";
 import { WeeklyChallengeCard } from "../components/weekly/WeeklyChallengeCard";
 import { TodaySection } from "../components/home/TodaySection";
 import { RecommendationsStrip } from "../components/home/RecommendationsStrip";
@@ -257,12 +258,12 @@ export function HomePage() {
         <FocusLockRow user={user} onChange={updateUser} onOpenPicker={() => setFocusLockModal(true)} />
         <div className="grouped-list-row">
           <label className="soft">Daily goal (min)</label>
-          <input
-            type="number"
+          <NumericInput
             min={15}
             max={480}
+            fallback={60}
             value={user.personalGoalMinutes}
-            onChange={(e) => updateUser({ ...user, personalGoalMinutes: Math.max(15, Number(e.target.value) || 60) })}
+            onChange={(n) => updateUser({ ...user, personalGoalMinutes: n })}
             style={{ width: 96 }}
           />
         </div>

@@ -22,8 +22,9 @@ import { OwnerSettingsPage } from "./pages/OwnerSettingsPage";
 import { MaintenancePage } from "./pages/MaintenancePage";
 import { AchievementsPage } from "./pages/AchievementsPage";
 import { AccessibilityPage } from "./pages/AccessibilityPage";
+import { FocusPresetLabPage } from "./pages/FocusPresetLabPage";
+import { BETA_PROGRAM_PUBLIC } from "./data/constants";
 import { BetaHomePage } from "./pages/beta/BetaHomePage";
-import { FocusPresetLabPage } from "./pages/beta/FocusPresetLabPage";
 import { RoutineBuilderPage } from "./pages/beta/RoutineBuilderPage";
 import { GoalsPage } from "./pages/beta/GoalsPage";
 import { BetaShellGate } from "./components/beta/BetaShellGate";
@@ -50,7 +51,7 @@ function AppRoutes() {
   const locked = !canAccessTab(tab, user, hasUnlock, store);
 
   const betaWrap = (node: React.ReactNode) =>
-    isBetaShell ? node : <BetaShellGate>{node}</BetaShellGate>;
+    !BETA_PROGRAM_PUBLIC || isBetaShell ? node : <BetaShellGate>{node}</BetaShellGate>;
 
   let page: React.ReactNode = <HomePage />;
   switch (tab) {
@@ -102,17 +103,17 @@ function AppRoutes() {
     case "accessibility":
       page = <AccessibilityPage />;
       break;
-    case "betaHome":
-      page = betaWrap(<BetaHomePage />);
-      break;
     case "focusPresetLab":
-      page = betaWrap(<FocusPresetLabPage />);
+      page = <FocusPresetLabPage />;
       break;
     case "routineBuilder":
-      page = betaWrap(<RoutineBuilderPage />);
+      page = BETA_PROGRAM_PUBLIC ? betaWrap(<RoutineBuilderPage />) : <HomePage />;
       break;
     case "goals":
-      page = betaWrap(<GoalsPage />);
+      page = BETA_PROGRAM_PUBLIC ? betaWrap(<GoalsPage />) : <HomePage />;
+      break;
+    case "betaHome":
+      page = BETA_PROGRAM_PUBLIC ? betaWrap(<BetaHomePage />) : <HomePage />;
       break;
   }
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Minus, Music2, Pause, Play, Plus, Settings2, Sparkles, Square, StickyNote } from "lucide-react";
+import { Minus, Music2, Pause, Play, Plus, Settings2, Sliders, Sparkles, Square, StickyNote } from "lucide-react";
+import { NumericInput } from "../components/ui/NumericInput";
 import { useStudyGrind } from "../context/StudyGrindContext";
 import { useFocusTimer } from "../context/FocusTimerContext";
 import type { SessionMeta } from "../context/FocusTimerContext";
@@ -21,8 +22,7 @@ export function TimerPage() {
     setSelectedTaskId,
     applyFocusProfile,
     saveFocusProfile,
-    advanceRoutineStep,
-    cancelActiveRoutine,
+    goTab,
   } = useStudyGrind();
   const timer = useFocusTimer();
   const {
@@ -43,8 +43,14 @@ export function TimerPage() {
   const [reflectionOpen, setReflectionOpen] = useState(false);
   const [pendingMinutes, setPendingMinutes] = useState(0);
 
-  const clampFocus = (n: number) => Math.min(180, Math.max(5, Math.round(n) || 25));
-  const clampBreak = (n: number) => Math.min(30, Math.max(1, Math.round(n) || 5));
+  const clampFocus = (n: number) => {
+    if (!Number.isFinite(n)) return 25;
+    return Math.min(180, Math.max(5, Math.round(n)));
+  };
+  const clampBreak = (n: number) => {
+    if (!Number.isFinite(n)) return 5;
+    return Math.min(30, Math.max(1, Math.round(n)));
+  };
 
   const [linkMode, setLinkMode] = useState<"general" | "task" | "exam">(() => {
     if (selectedTaskId) return "task";
@@ -109,6 +115,9 @@ export function TimerPage() {
     set: (n: number) => void,
     clamp: (n: number) => number,
     step: number,
+    min: number,
+    max: number,
+    fallback: number,
   ) => (
     <div className="timer-picker-panel">
       <label className="timer-picker-label" htmlFor={id}>
@@ -118,13 +127,13 @@ export function TimerPage() {
         <button type="button" className="ghost icon-btn" aria-label={`Decrease ${label}`} onClick={() => set(clamp(value - step))}>
           <Minus size={16} />
         </button>
-        <input
+        <NumericInput
           id={id}
-          type="number"
-          inputMode="numeric"
+          min={min}
+          max={max}
+          fallback={fallback}
           value={value}
-          onChange={(e) => set(Number(e.target.value))}
-          onBlur={() => set(clamp(value))}
+          onChange={(n) => set(n)}
           className="timer-duration-input"
           aria-label={`${label} in minutes`}
         />
@@ -135,30 +144,8 @@ export function TimerPage() {
     </div>
   );
 
-  const activeRoutine = user?.activeRoutine;
-  const routineMeta = activeRoutine
-    ? (user?.studyRoutines ?? []).find((r) => r.id === activeRoutine.routineId)
-    : null;
-  const routineStep = routineMeta?.steps[activeRoutine?.stepIndex ?? 0];
-
   return (
     <PageTransition stagger>
-      {activeRoutine && routineMeta && (
-        <section className="card beta-routine-banner">
-          <b>
-            Routine: {routineMeta.name} — Step {(activeRoutine.stepIndex ?? 0) + 1}/{routineMeta.steps.length}
-          </b>
-          {routineStep?.kind === "prompt" && <p className="soft">{routineStep.text}</p>}
-          <div className="row wrap">
-            <PressableButton variant="ghost" onClick={advanceRoutineStep}>
-              {routineStep?.kind === "prompt" ? "Done — next step" : "Next step"}
-            </PressableButton>
-            <PressableButton variant="ghost" onClick={cancelActiveRoutine}>
-              Cancel routine
-            </PressableButton>
-          </div>
-        </section>
-      )}
       <section className={`card timer-card liquid-timer timer-phase-${timer.phase} ${glowOn ? "timer-glow-ready" : ""}`}>
         <div className="timer-liquid-backdrop" aria-hidden="true">
           <div className="timer-blob b1" />
@@ -263,8 +250,8 @@ export function TimerPage() {
           <Settings2 size={16} /> Session setup
         </h4>
         <div className="timer-picker-grid">
-          {stepper("focus-minutes", "Focus (min)", draftFocus, setDraftFocus, clampFocus, 5)}
-          {stepper("break-minutes", "Break (min)", draftBreak, setDraftBreak, clampBreak, 1)}
+          {stepper("focus-minutes", "Focus (min)", draftFocus, setDraftFocus, clampFocus, 5, 5, 180, 25)}
+          {stepper("break-minutes", "Break (min)", draftBreak, setDraftBreak, clampBreak, 1, 1, 30, 5)}
         </div>
         <div className="chip-group" style={{ marginBottom: 12 }}>
           <button type="button" className={`chip ${draftFocus === 25 && draftBreak === 5 ? "chip-active" : ""}`} onClick={() => applyPreset(25, 5)}>
@@ -276,7 +263,12 @@ export function TimerPage() {
           <button type="button" className={`chip ${draftFocus === 60 && draftBreak === 10 ? "chip-active" : ""}`} onClick={() => applyPreset(60, 10)}>
             Deep 60/10
           </button>
-          <PressableButton onClick={() => timer.applyDurations(draftFocus, draftBreak)}>Apply</PressableButton>
+          <PressableButton onClick={() => timer.applyDurations(clampFocus(draftFocus), clampBreak(draftBreak))}>
+            Apply
+          </PressableButton>
+          <PressableButton variant="ghost" onClick={() => goTab("focusPresetLab")}>
+            <Sliders size={14} /> Preset Lab
+          </PressableButton>
         </div>
 
         <div className="timer-task-select">

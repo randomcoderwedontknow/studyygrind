@@ -42,6 +42,7 @@ import { BetaNavStrip } from "./BetaNavStrip";
 import { Sidebar } from "./Sidebar";
 import { WhatsNewModal } from "../WhatsNewModal";
 import { BETA_FEATURE_TABS } from "../../lib/beta-shell";
+import { BETA_PROGRAM_PUBLIC } from "../../data/constants";
 
 const TAB_ICONS: Partial<Record<Tab, React.ReactNode>> = {
   home: <Home size={18} />,
@@ -67,6 +68,7 @@ const MAIN_TABS: Tab[] = [
   "home",
   "tasks",
   "timer",
+  "focusPresetLab",
   "cards",
   "notes",
   "shop",
@@ -181,7 +183,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="topbar-actions">
-              {isBetaShell && <span className="pill beta-top-pill">Beta</span>}
+              {BETA_PROGRAM_PUBLIC && isBetaShell && <span className="pill beta-top-pill">Beta</span>}
               {!isAndroid && <span className="pill points-pill">{user.focusPoints.toLocaleString()} pts</span>}
               <button
                 type="button"
@@ -206,7 +208,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
 
           <main className="content">{children}</main>
-          {isBetaShell && <BetaNavStrip />}
+          {BETA_PROGRAM_PUBLIC && isBetaShell && <BetaNavStrip />}
         </div>
       </div>
 
@@ -331,7 +333,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="drawer-desc">{isTabLocked("themeStudio") ? "Buy in Focus Shop" : "Custom colours & gradients"}</span>
             <ChevronRight className="drawer-arrow" size={16} />
           </button>
-          {isBetaShell && (
+          {BETA_PROGRAM_PUBLIC && isBetaShell && BETA_FEATURE_TABS.length > 0 && (
             <>
               <div className="drawer-beta-divider">
                 <span>Beta features</span>
@@ -359,7 +361,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
         </div>
         <div className="drawer-foot">
-          {isBetaShell && (
+          {BETA_PROGRAM_PUBLIC && isBetaShell && (
             <button type="button" className="ghost pressable" onClick={() => leaveBetaShell()}>
               Exit beta area
             </button>

@@ -3,6 +3,7 @@ import { themes } from "../data/themes";
 import { useStudyGrind } from "../context/StudyGrindContext";
 import type { OnboardingProfile, ThemeId } from "../types";
 import { PressableButton } from "../components/ui/PressableButton";
+import { NumericInput } from "../components/ui/NumericInput";
 import { REMINDER_HOUR_OPTIONS } from "../lib/reminder-time";
 
 const GOALS = ["Stay consistent", "Exam prep", "Deep work", "Build habits", "Finish projects"];
@@ -83,24 +84,22 @@ export function OnboardingPage() {
             <div className="grid2 onboarding-durations">
               <label className="field">
                 <span>Focus (min)</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
+                <NumericInput
                   min={5}
                   max={180}
+                  fallback={25}
                   value={draft.focusDurationMin}
-                  onChange={(e) => saveDraft({ focusDurationMin: Number(e.target.value) || 25 })}
+                  onChange={(n) => saveDraft({ focusDurationMin: n })}
                 />
               </label>
               <label className="field">
                 <span>Break (min)</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
+                <NumericInput
                   min={1}
                   max={30}
+                  fallback={5}
                   value={draft.breakDurationMin}
-                  onChange={(e) => saveDraft({ breakDurationMin: Number(e.target.value) || 5 })}
+                  onChange={(n) => saveDraft({ breakDurationMin: n })}
                 />
               </label>
             </div>

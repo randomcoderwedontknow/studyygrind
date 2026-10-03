@@ -1,6 +1,7 @@
 import { Lock, LogOut, Settings } from "lucide-react";
 import { useStudyGrind } from "../../context/StudyGrindContext";
 import { BETA_FEATURE_TABS } from "../../lib/beta-shell";
+import { BETA_PROGRAM_PUBLIC } from "../../data/constants";
 import type { Tab } from "../../types";
 
 export function Sidebar({
@@ -43,7 +44,7 @@ export function Sidebar({
             </button>
           );
         })}
-        {isBetaShell && (
+        {BETA_PROGRAM_PUBLIC && isBetaShell && BETA_FEATURE_TABS.length > 0 && (
           <>
             <div className="drawer-beta-divider">
               <span>Beta</span>
@@ -63,7 +64,7 @@ export function Sidebar({
         )}
       </div>
       <div className="sidebar-foot">
-        {isBetaShell && (
+        {BETA_PROGRAM_PUBLIC && isBetaShell && (
           <button type="button" className="ghost pressable" onClick={() => leaveBetaShell()}>
             Exit beta
           </button>

@@ -7,6 +7,8 @@ import { PageTransition } from "../components/ui/PageTransition";
 import { PressableButton } from "../components/ui/PressableButton";
 import { HorizontalTabBar } from "../components/ui/HorizontalTabBar";
 import { Modal } from "../components/ui/Modal";
+import { NumericInput } from "../components/ui/NumericInput";
+import { BETA_PROGRAM_PUBLIC } from "../data/constants";
 import type { Role, ThemeId, UserData } from "../types";
 
 type Section = "personal" | "users" | "themes" | "broadcast" | "moderation" | "mentor" | "beta" | "system";
@@ -410,11 +412,12 @@ function UsersSection() {
 
           <h5>Gift and message</h5>
           <div className="row wrap">
-            <input
-              type="number"
+            <NumericInput
               min={1}
+              max={999_999_999}
+              fallback={100}
               value={giftAmount}
-              onChange={(e) => setGiftAmount(Math.max(1, Number(e.target.value) || 0))}
+              onChange={setGiftAmount}
               aria-label="Gift amount"
               className="owner-num"
             />
@@ -730,7 +733,7 @@ function BroadcastSection() {
         <div className="row wrap">
           <label className="soft">
             Days:{" "}
-            <input type="number" min={1} value={days} onChange={(e) => setDays(Math.max(1, Number(e.target.value) || 1))} className="owner-num" />
+            <NumericInput min={1} max={365} fallback={7} value={days} onChange={setDays} className="owner-num" />
           </label>
           <PressableButton
             onClick={() => {
@@ -771,11 +774,20 @@ function BroadcastSection() {
         <div className="row wrap">
           <label className="soft">
             Multiplier:{" "}
-            <input type="number" min={1} max={5} step={0.5} value={mult} onChange={(e) => setMult(Number(e.target.value) || 1)} className="owner-num" />
+            <NumericInput
+              min={1}
+              max={5}
+              fallback={2}
+              allowDecimal
+              inputMode="decimal"
+              value={mult}
+              onChange={setMult}
+              className="owner-num"
+            />
           </label>
           <label className="soft">
             Days:{" "}
-            <input type="number" min={1} value={eventDays} onChange={(e) => setEventDays(Math.max(1, Number(e.target.value) || 1))} className="owner-num" />
+            <NumericInput min={1} max={30} fallback={3} value={eventDays} onChange={setEventDays} className="owner-num" />
           </label>
           <PressableButton
             onClick={() => {
@@ -901,9 +913,13 @@ function BetaProgramSection() {
     <>
       <section className="card owner-panel">
         <h4>Beta program</h4>
+        {!BETA_PROGRAM_PUBLIC && (
+          <p className="soft">
+            Beta is closed in this app build. Preset Lab ships in the main app. Set BETA_PROGRAM_PUBLIC to true in constants to reopen routines and goals testing.
+          </p>
+        )}
         <p className="soft">
-          When enabled, enrolled users see Enter beta area in Settings. The beta shell only shows Preset Lab, Routines,
-          Goals, Timer, and slim Settings.
+          When enabled, enrolled users see Enter beta area in Settings for experimental pages (not Preset Lab).
         </p>
         <div className="setting-row">
           <span>Beta program enabled</span>
@@ -911,6 +927,7 @@ function BetaProgramSection() {
             on={store.betaProgramEnabled}
             label="Beta program enabled"
             onClick={() => {
+              if (!BETA_PROGRAM_PUBLIC) return;
               patchStore({ betaProgramEnabled: !store.betaProgramEnabled });
               setToast(store.betaProgramEnabled ? "Beta program disabled." : "Beta program enabled.");
             }}

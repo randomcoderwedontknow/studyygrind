@@ -9,6 +9,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { HorizontalTabBar } from "../components/ui/HorizontalTabBar";
 import { dayDiff } from "../lib/dates";
 import type { Exam, Task, TaskPriority, TaskStatus } from "../types";
+import { NumericInput } from "../components/ui/NumericInput";
 
 const PR: Record<TaskPriority, number> = { High: 0, Medium: 1, Low: 2 };
 const COLUMNS: TaskStatus[] = ["todo", "doing", "done"];
@@ -422,12 +423,12 @@ export function TasksPage() {
         <input placeholder="Exam name" value={examDraft.title} onChange={(e) => setExamDraft({ ...examDraft, title: e.target.value })} />
         <input placeholder="Subject (optional)" value={examDraft.subject} onChange={(e) => setExamDraft({ ...examDraft, subject: e.target.value })} />
         <input type="date" value={examDraft.examDate} onChange={(e) => setExamDraft({ ...examDraft, examDate: e.target.value })} aria-label="Exam date" />
-        <input
-          type="number"
+        <NumericInput
           min={15}
           max={180}
+          fallback={45}
           value={examDraft.targetMinutesPerDay}
-          onChange={(e) => setExamDraft({ ...examDraft, targetMinutesPerDay: Number(e.target.value) || 45 })}
+          onChange={(n) => setExamDraft({ ...examDraft, targetMinutesPerDay: n })}
           aria-label="Target minutes per day"
         />
       </Modal>
@@ -453,7 +454,14 @@ export function TasksPage() {
           </div>
           <div>
             <label className="soft" htmlFor="task-minutes">Focus minutes</label>
-            <input id="task-minutes" type="number" inputMode="numeric" min={5} max={180} value={input.minutes} onChange={(e) => setInput({ ...input, minutes: Number(e.target.value) })} />
+            <NumericInput
+              id="task-minutes"
+              min={5}
+              max={180}
+              fallback={25}
+              value={input.minutes}
+              onChange={(n) => setInput({ ...input, minutes: n })}
+            />
           </div>
         </div>
       </Modal>
