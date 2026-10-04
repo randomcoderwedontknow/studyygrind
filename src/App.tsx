@@ -7,6 +7,7 @@ import { OnboardingPage } from "./pages/OnboardingPage";
 import { AuthPage } from "./pages/AuthPage";
 import { HomePage } from "./pages/HomePage";
 import { TasksPage } from "./pages/TasksPage";
+import { ExamsPage } from "./pages/ExamsPage";
 import { TimerPage } from "./pages/TimerPage";
 import { FlashcardsPage } from "./pages/FlashcardsPage";
 import { NotesPage } from "./pages/NotesPage";
@@ -61,6 +62,9 @@ function AppRoutes() {
     case "tasks":
       page = <TasksPage />;
       break;
+    case "exams":
+      page = <ExamsPage />;
+      break;
     case "timer":
       page = <TimerPage />;
       break;
@@ -104,7 +108,7 @@ function AppRoutes() {
       page = <AccessibilityPage />;
       break;
     case "focusPresetLab":
-      page = <FocusPresetLabPage />;
+      page = locked ? <ShopPage /> : <FocusPresetLabPage />;
       break;
     case "routineBuilder":
       page = BETA_PROGRAM_PUBLIC ? betaWrap(<RoutineBuilderPage />) : <HomePage />;

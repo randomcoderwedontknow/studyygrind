@@ -54,6 +54,37 @@ export function grantThemeSurface(
   };
 }
 
+export function revokeThemeSurface(
+  owned: Partial<Record<ThemeId, { classic?: boolean; liquid?: boolean }>>,
+  id: ThemeId,
+  surface: ThemeSurface,
+): Partial<Record<ThemeId, { classic?: boolean; liquid?: boolean }>> {
+  if (id === "green") return owned;
+  const prev = owned[id] ?? {};
+  const next = { ...prev, [surface]: false };
+  if (!next.classic && !next.liquid) {
+    const copy = { ...owned };
+    delete copy[id];
+    return copy;
+  }
+  return { ...owned, [id]: next };
+}
+
+export function revokeRotatingSurface(
+  owned: Record<string, { classic?: boolean; liquid?: boolean }>,
+  id: string,
+  surface: ThemeSurface,
+): Record<string, { classic?: boolean; liquid?: boolean }> {
+  const prev = owned[id] ?? {};
+  const next = { ...prev, [surface]: false };
+  if (!next.classic && !next.liquid) {
+    const copy = { ...owned };
+    delete copy[id];
+    return copy;
+  }
+  return { ...owned, [id]: next };
+}
+
 export function grantRotatingSurface(
   owned: Record<string, { classic?: boolean; liquid?: boolean }>,
   id: string,

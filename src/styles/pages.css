@@ -1472,3 +1472,43 @@ body.beta-full-shell.has-bottom-nav .content {
   text-align: center;
   color: var(--text-soft);
 }
+
+.exams-grid {
+  display: grid;
+  gap: var(--sp-4);
+}
+@media (min-width: 640px) {
+  .exams-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.exam-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.shop-owned-section {
+  margin-top: var(--sp-3);
+}
+.shop-owned-section h5 {
+  margin-bottom: var(--sp-3);
+}
+.shop-owned-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--border);
+}
+.shop-owned-row:last-child {
+  border-bottom: 0;
+}
+.shop-market-strip {
+  margin-bottom: var(--sp-2);
+}
+.task-recurrence-block {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--border);
+}

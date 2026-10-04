@@ -331,7 +331,7 @@ export function SettingsPage() {
           Signed in as <b>{user.username}</b>
           {user.role !== "user" ? ` · ${user.role}` : ""}
         </p>
-        <p className="soft settings-version">StudyGrind v12.2.9</p>
+        <p className="soft settings-version">StudyGrind v12.3.0</p>
       </section>
     </PageTransition>
   );

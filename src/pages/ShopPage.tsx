@@ -13,9 +13,17 @@ import {
   type ShopItem,
 } from "../data/shop-catalog";
 import { UNLOCK_IDS, CUSTOM_TITLE_UNLOCK_PRICE } from "../data/constants";
+import {
+  economyMarketPrice,
+  economyMarketPriceScaled,
+  economyPriceDelta,
+  economyShopPrice,
+  economyShopPriceScaled,
+} from "../lib/economy-pricing";
+import { rotatingThemeById } from "../data/pools/rotating-themes";
+import { PURCHASABLE_TITLES } from "../data/titles";
 import { dailyShopThemes } from "../lib/weekly-rotation";
 import { getDayKey } from "../lib/week";
-import { PURCHASABLE_TITLES } from "../data/titles";
 import type { ThemeId } from "../types";
 import { TIMER_END_SOUNDS, previewTimerEndSound } from "../lib/timer-audio";
 import {
@@ -25,7 +33,7 @@ import {
   TROPHY_CREDIT_MAX_PRICE,
 } from "../lib/trophy-rewards";
 import { themeSwatchStyle } from "../lib/theme-swatch";
-import { applyDiscount, scalePrice, shopDisplayPrice, themeClassicPrice, themeLiquidPrice, themePurchasePrice } from "../lib/pricing";
+import { applyDiscount, scalePrice, shopDisplayPrice, themeClassicPrice, themePurchasePrice } from "../lib/pricing";
 import {
   isRotatingThemeId,
   ownsRotatingClassic,
@@ -92,9 +100,14 @@ export function ShopPage() {
     setToast,
     addToWishlist,
     isWishlisted,
+    sellShopItem,
+    sellTitle,
+    sellCustomName,
+    sellThemeSurface,
   } = useStudyGrind();
   const [category, setCategory] = useState<ShopView>("daily");
   const [confirm, setConfirm] = useState<{ id: string; name: string; price: number; displayPrice: number; unlockKey: string } | null>(null);
+  const [sellConfirm, setSellConfirm] = useState<{ label: string; onConfirm: () => void; refund: number } | null>(null);
   const [shopFilter, setShopFilter] = useState<"all" | "core" | "premium" | "vip" | "honour">("all");
 
   if (!user) return null;
@@ -121,13 +134,15 @@ export function ShopPage() {
   const ownedUnlock = (key?: string) => (key ? hasUnlock(key) : false);
 
   const openConfirm = (item: ShopItem) => {
-    const displayPrice = item.free ? 0 : applyDiscount(scalePrice(item.price), user.discount);
-    setConfirm({ id: item.id, name: item.name, price: item.price, displayPrice, unlockKey: item.unlockKey ?? item.id });
+    const key = item.unlockKey ?? item.id;
+    const displayPrice = item.free ? 0 : economyShopPrice(item.price, key, user.discount);
+    setConfirm({ id: item.id, name: item.name, price: item.price, displayPrice, unlockKey: key });
   };
 
   const renderCatalogItem = (item: ShopItem) => {
     const owned = item.free || ownedUnlock(item.unlockKey);
-    const final = item.free ? 0 : applyDiscount(scalePrice(item.price), user.discount);
+    const key = item.unlockKey ?? item.id;
+    const final = item.free ? 0 : economyShopPrice(item.price, key, user.discount);
     const canUseCredit = trophyCredits > 0 && !owned && canRedeemTrophyCredit(item);
     const soundMeta = TIMER_END_SOUNDS.find((s) => s.shopKey === item.unlockKey);
     return (
@@ -179,7 +194,7 @@ export function ShopPage() {
     <section className="theme-grid">
       {PURCHASABLE_TITLES.map((t) => {
         const owned = user.ownedTitles.includes(t.id);
-        const displayPts = shopDisplayPrice(t.price, user.discount);
+        const displayPts = economyShopPrice(t.price, `title-${t.id}`, user.discount);
         const canUseCredit = trophyCredits > 0 && !owned && canRedeemTrophyCreditForTitle(t.id, t.price);
         return (
           <article key={t.id} className="theme-card">
@@ -205,11 +220,11 @@ export function ShopPage() {
       <article className="theme-card">
         <div className="theme-body">
           <b>Custom Name</b>
-          <p className="soft">{shopDisplayPrice(CUSTOM_TITLE_UNLOCK_PRICE, user.discount).toLocaleString()} pts — your own title text</p>
+          <p className="soft">{economyShopPrice(CUSTOM_TITLE_UNLOCK_PRICE, UNLOCK_IDS.customName, user.discount).toLocaleString()} pts — your own title text</p>
           <PressableButton
             disabled={hasUnlock(UNLOCK_IDS.customName)}
             onClick={() => {
-              const displayPrice = shopDisplayPrice(CUSTOM_TITLE_UNLOCK_PRICE, user.discount);
+              const displayPrice = economyShopPrice(CUSTOM_TITLE_UNLOCK_PRICE, UNLOCK_IDS.customName, user.discount);
               setConfirm({
                 id: UNLOCK_IDS.customName,
                 name: "Custom Name",
@@ -300,10 +315,18 @@ export function ShopPage() {
         {dailyShopThemes(getDayKey()).map((t) => {
           const hasClassic = ownsRotatingClassic(user, t.id);
           const hasLiquid = ownsRotatingLiquid(user, t.id);
-          const classicPay = applyDiscount(themePurchasePrice(t.price, "classic", hasClassic, hasLiquid), user.discount);
-          const liquidPay = applyDiscount(themePurchasePrice(t.price, "liquid", hasClassic, hasLiquid), user.discount);
+          const classicPay = economyShopPriceScaled(
+            themePurchasePrice(t.price, "classic", hasClassic, hasLiquid),
+            `rot-theme-${t.id}-classic`,
+            user.discount,
+          );
+          const liquidPay = economyShopPriceScaled(
+            themePurchasePrice(t.price, "liquid", hasClassic, hasLiquid),
+            `rot-theme-${t.id}-liquid`,
+            user.discount,
+          );
           const priceLabel = !hasClassic && !hasLiquid
-            ? `Normal ${shopDisplayPrice(t.price, user.discount).toLocaleString()} · Liquid ${applyDiscount(themeLiquidPrice(t.price), user.discount).toLocaleString()}`
+            ? `Normal ${classicPay.toLocaleString()} · Liquid ${liquidPay.toLocaleString()}`
             : !hasClassic
               ? `Normal ${classicPay.toLocaleString()}`
               : !hasLiquid
@@ -348,63 +371,89 @@ export function ShopPage() {
     </section>
   );
 
+  const renderOwnedRow = (name: string, detail: string, refund: number, actions: React.ReactNode) => (
+    <article key={name + detail} className="shop-owned-row">
+      <div>
+        <b>{name}</b>
+        <p className="soft">{detail}</p>
+        <small className="soft">Sell today: {refund.toLocaleString()} pts</small>
+      </div>
+      <div className="row wrap">{actions}</div>
+    </article>
+  );
+
   const renderOwned = () => {
     const customIds = new Set(user.savedCustomThemes.map((c) => c.id));
-    const builtinIds = user.ownedThemes.filter((id) => themes[id as ThemeId] && !customIds.has(id));
+    const builtinIds = user.ownedThemes.filter((id) => themes[id as ThemeId] && id !== "green" && !customIds.has(id));
     const rotatingIds = user.ownedRotatingThemeIds;
+    const hubOwned = SHOP_HUB_ITEMS.filter((i) => i.unlockKey && hasUnlock(i.unlockKey));
+    const unlockOwned = ALL_SHOP_ITEMS.filter(
+      (i) => i.unlockKey && !i.free && !i.ownerOnly && i.category !== "hubs" && hasUnlock(i.unlockKey),
+    );
 
-    const renderOwnedCard = (id: string) => {
+    const renderOwnedThemeCard = (id: string) => {
       const meta = themeAppearance(id, [], user.savedCustomThemes, "classic");
-      const custom = user.savedCustomThemes.find((c) => c.id === id);
       const rotating = isRotatingThemeId(id);
-      const builtin = Boolean(themes[id as ThemeId]);
-      const hasClassic = custom
-        ? custom.liquidUi !== true
-        : rotating
-          ? ownsRotatingClassic(user, id)
-          : ownsThemeClassic(user, id as ThemeId);
-      const hasLiquid = custom
-        ? custom.liquidUi === true
-        : rotating
-          ? ownsRotatingLiquid(user, id)
-          : ownsThemeLiquid(user, id as ThemeId);
-      const equippedClassic = user.equippedTheme === id && (user.equippedThemeSurface ?? "classic") !== "liquid";
-      const equippedLiquid = user.equippedTheme === id && (user.equippedThemeSurface ?? "classic") === "liquid";
+      const hasClassic = rotating ? ownsRotatingClassic(user, id) : ownsThemeClassic(user, id as ThemeId);
+      const hasLiquid = rotating ? ownsRotatingLiquid(user, id) : ownsThemeLiquid(user, id as ThemeId);
+      const base = rotating ? rotatingThemeById(id)?.price ?? 0 : themes[id as ThemeId]?.price ?? 0;
 
       return (
         <article key={id} className={`theme-card ${user.equippedTheme === id ? "equipped" : ""}`}>
-          {hasClassic && hasLiquid ? (
-            <div className="theme-swatch-strip" aria-hidden>
-              <div className="theme-swatch" style={themeSwatchStyle(themeAppearance(id, [], user.savedCustomThemes, "classic"))} />
-              <div className="theme-swatch" style={themeSwatchStyle(themeAppearance(id, [], user.savedCustomThemes, "liquid"))} />
-            </div>
-          ) : (
-            <div
-              className="theme-swatch"
-              style={themeSwatchStyle(
-                themeAppearance(id, [], user.savedCustomThemes, hasLiquid ? "liquid" : "classic"),
-              )}
-            />
-          )}
           <div className="theme-body">
             <b>{meta.name}</b>
-            <small>
-              {hasClassic && hasLiquid ? "Normal · Liquid" : hasLiquid ? "Liquid" : hasClassic ? "Normal" : ""}
-            </small>
-            <div className="row wrap">
+            <div className="row wrap" style={{ marginTop: 8 }}>
               {hasClassic && (
-                <EquipButton equipped={equippedClassic} onEquip={() => equipTheme(id, "classic")} label="Normal" />
+                <>
+                  <EquipButton
+                    equipped={user.equippedTheme === id && (user.equippedThemeSurface ?? "classic") !== "liquid"}
+                    onEquip={() => equipTheme(id, "classic")}
+                    label="Normal"
+                  />
+                  <PressableButton
+                    variant="ghost"
+                    onClick={() => {
+                      const raw = themePurchasePrice(base, "classic", hasClassic, hasLiquid);
+                      const refund = economyMarketPriceScaled(raw, rotating ? `rot-theme-${id}-classic` : `theme-${id}-classic`);
+                      setSellConfirm({
+                        label: `${meta.name} (Normal)`,
+                        refund,
+                        onConfirm: () => {
+                          sellThemeSurface(id, "classic", rotating);
+                          setSellConfirm(null);
+                        },
+                      });
+                    }}
+                  >
+                    Sell Normal
+                  </PressableButton>
+                </>
               )}
               {hasLiquid && (
-                <EquipButton equipped={equippedLiquid} onEquip={() => equipTheme(id, "liquid")} label="Liquid" />
-              )}
-              {(builtin || rotating) && (!hasClassic || !hasLiquid) && (
-                <PressableButton
-                  variant="ghost"
-                  onClick={() => (rotating ? setRotatingBuyId(id) : setThemeBuyId(id as ThemeId))}
-                >
-                  Upgrade
-                </PressableButton>
+                <>
+                  <EquipButton
+                    equipped={user.equippedTheme === id && (user.equippedThemeSurface ?? "classic") === "liquid"}
+                    onEquip={() => equipTheme(id, "liquid")}
+                    label="Liquid"
+                  />
+                  <PressableButton
+                    variant="ghost"
+                    onClick={() => {
+                      const raw = themePurchasePrice(base, "liquid", hasClassic, hasLiquid);
+                      const refund = economyMarketPriceScaled(raw, rotating ? `rot-theme-${id}-liquid` : `theme-${id}-liquid`);
+                      setSellConfirm({
+                        label: `${meta.name} (Liquid)`,
+                        refund,
+                        onConfirm: () => {
+                          sellThemeSurface(id, "liquid", rotating);
+                          setSellConfirm(null);
+                        },
+                      });
+                    }}
+                  >
+                    Sell Liquid
+                  </PressableButton>
+                </>
               )}
             </div>
           </div>
@@ -413,15 +462,147 @@ export function ShopPage() {
     };
 
     return (
-      <section className="card shop-tab-panel">
-        <h4>Owned colours</h4>
-        <p className="soft">Equip Normal or Liquid only for variants you bought.</p>
-        <div className="theme-grid">
-          {builtinIds.map(renderOwnedCard)}
-          {rotatingIds.map(renderOwnedCard)}
-          {user.savedCustomThemes.map((c) => renderOwnedCard(c.id))}
-        </div>
-      </section>
+      <>
+        <section className="card shop-tab-panel">
+          <h4>Owned inventory</h4>
+          <p className="soft">Sell items for today&apos;s market price. Prices change at midnight.</p>
+        </section>
+
+        {hubOwned.length > 0 && (
+          <section className="card shop-owned-section">
+            <h5>Pages & labs</h5>
+            {hubOwned.map((i) => {
+              const key = i.unlockKey!;
+              const refund = economyMarketPrice(i.price, key);
+              return renderOwnedRow(
+                i.name,
+                "Unlocked hub",
+                refund,
+                <PressableButton
+                  variant="ghost"
+                  onClick={() =>
+                    setSellConfirm({
+                      label: i.name,
+                      refund,
+                      onConfirm: () => {
+                        sellShopItem(key);
+                        setSellConfirm(null);
+                      },
+                    })
+                  }
+                >
+                  Sell
+                </PressableButton>,
+              );
+            })}
+          </section>
+        )}
+
+        {(user.ownedTitles.some((t) => PURCHASABLE_TITLES.some((p) => p.id === t)) || hasUnlock(UNLOCK_IDS.customName)) && (
+          <section className="card shop-owned-section">
+            <h5>Display titles</h5>
+            {PURCHASABLE_TITLES.filter((t) => user.ownedTitles.includes(t.id)).map((t) => {
+              const refund = economyMarketPrice(t.price, `title-${t.id}`);
+              return renderOwnedRow(
+                t.label,
+                "Title",
+                refund,
+                <>
+                  <PressableButton variant="ghost" onClick={() => equipTitle(t.id)}>
+                    Equip
+                  </PressableButton>
+                  <PressableButton
+                    variant="ghost"
+                    onClick={() =>
+                      setSellConfirm({
+                        label: t.label,
+                        refund,
+                        onConfirm: () => {
+                          sellTitle(t.id);
+                          setSellConfirm(null);
+                        },
+                      })
+                    }
+                  >
+                    Sell
+                  </PressableButton>
+                </>,
+              );
+            })}
+            {hasUnlock(UNLOCK_IDS.customName) &&
+              renderOwnedRow(
+                "Custom Name",
+                "Custom display title",
+                economyMarketPrice(CUSTOM_TITLE_UNLOCK_PRICE, UNLOCK_IDS.customName),
+                <PressableButton
+                  variant="ghost"
+                  onClick={() =>
+                    setSellConfirm({
+                      label: "Custom Name",
+                      refund: economyMarketPrice(CUSTOM_TITLE_UNLOCK_PRICE, UNLOCK_IDS.customName),
+                      onConfirm: () => {
+                        sellCustomName();
+                        setSellConfirm(null);
+                      },
+                    })
+                  }
+                >
+                  Sell
+                </PressableButton>,
+              )}
+          </section>
+        )}
+
+        {(builtinIds.length > 0 || rotatingIds.length > 0) && (
+          <section className="card shop-owned-section">
+            <h5>Themes</h5>
+            <div className="theme-grid">
+              {builtinIds.map(renderOwnedThemeCard)}
+              {rotatingIds.map(renderOwnedThemeCard)}
+            </div>
+          </section>
+        )}
+
+        {unlockOwned.length > 0 && (
+          <section className="card shop-owned-section">
+            <h5>Unlocks</h5>
+            {unlockOwned.map((i) => {
+              const key = i.unlockKey!;
+              const refund = economyMarketPrice(i.price, key);
+              return renderOwnedRow(
+                i.name,
+                i.description,
+                refund,
+                <PressableButton
+                  variant="ghost"
+                  onClick={() =>
+                    setSellConfirm({
+                      label: i.name,
+                      refund,
+                      onConfirm: () => {
+                        sellShopItem(key);
+                        setSellConfirm(null);
+                      },
+                    })
+                  }
+                >
+                  Sell
+                </PressableButton>,
+              );
+            })}
+          </section>
+        )}
+
+        {hubOwned.length === 0 &&
+          unlockOwned.length === 0 &&
+          builtinIds.length === 0 &&
+          rotatingIds.length === 0 &&
+          !user.ownedTitles.length && (
+            <section className="card">
+              <p className="soft">Nothing to sell yet — buy items from other shop tabs.</p>
+            </section>
+          )}
+      </>
     );
   };
 
@@ -486,6 +667,16 @@ export function ShopPage() {
 
       {category === "daily" && (
         <>
+          <section className="card shop-market-strip">
+            <p className="soft">
+              Market day — prices reset at midnight.{" "}
+              {(() => {
+                const { delta } = economyPriceDelta(CUSTOM_TITLE_UNLOCK_PRICE, UNLOCK_IDS.customName);
+                const sign = delta >= 0 ? "↑" : "↓";
+                return `Custom Name today: ${economyShopPrice(CUSTOM_TITLE_UNLOCK_PRICE, UNLOCK_IDS.customName, user.discount).toLocaleString()} pts (${sign}${Math.abs(delta).toLocaleString()})`;
+              })()}
+            </p>
+          </section>
           <DailyDealCard />
           {renderDaily()}
         </>
@@ -588,6 +779,29 @@ export function ShopPage() {
             </p>
           );
         })()}
+      </Modal>
+
+      <Modal
+        open={Boolean(sellConfirm)}
+        title="Sell to shop?"
+        onClose={() => setSellConfirm(null)}
+        footer={
+          sellConfirm && (
+            <PressableButton
+              onClick={() => {
+                sellConfirm.onConfirm();
+              }}
+            >
+              Sell for {sellConfirm.refund.toLocaleString()} pts
+            </PressableButton>
+          )
+        }
+      >
+        {sellConfirm && (
+          <p className="soft">
+            Sell <b>{sellConfirm.label}</b> for {sellConfirm.refund.toLocaleString()} focus points (today&apos;s market price)?
+          </p>
+        )}
       </Modal>
 
       <ThemeBuyModal

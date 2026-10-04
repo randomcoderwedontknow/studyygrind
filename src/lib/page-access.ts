@@ -1,4 +1,4 @@
-import { UNLOCK_IDS, FOCUS_LAB_PRICE, COLOUR_MAKER_PRICE } from "../data/constants";
+import { UNLOCK_IDS, FOCUS_LAB_PRICE, COLOUR_MAKER_PRICE, PRESET_LAB_PRICE } from "../data/constants";
 import { isBetaFeatureTab, isBetaShell } from "./beta-shell";
 import type { AppStore, Tab, UserData } from "../types";
 
@@ -12,6 +12,7 @@ export type LockedPageDef = {
 export const LOCKED_PAGES: LockedPageDef[] = [
   { tab: "focusLab", unlockKey: UNLOCK_IDS.focusLab, shopName: "Focus Lab", price: FOCUS_LAB_PRICE },
   { tab: "themeStudio", unlockKey: UNLOCK_IDS.colourMaker, shopName: "Colour & Gradient Studio", price: COLOUR_MAKER_PRICE },
+  { tab: "focusPresetLab", unlockKey: UNLOCK_IDS.presetLab, shopName: "Preset Lab", price: PRESET_LAB_PRICE },
 ];
 
 export function canAccessTab(

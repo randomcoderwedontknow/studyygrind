@@ -1,5 +1,6 @@
 import { rotatingThemeById } from "../../data/pools/rotating-themes";
-import { applyDiscount, shopDisplayPrice, themePurchasePrice, themeLiquidPrice } from "../../lib/pricing";
+import { themePurchasePrice } from "../../lib/pricing";
+import { economyShopPrice, economyShopPriceScaled } from "../../lib/economy-pricing";
 import { ownsRotatingClassic, ownsRotatingLiquid } from "../../lib/theme-variants";
 import type { ThemeSurface, UserData } from "../../types";
 import { Modal } from "../ui/Modal";
@@ -19,9 +20,16 @@ export function RotatingThemeBuyModal({ open, themeId, user, onClose, onBuy }: P
   if (!meta) return null;
   const hasClassic = ownsRotatingClassic(user, themeId);
   const hasLiquid = ownsRotatingLiquid(user, themeId);
-  const classicPay = applyDiscount(themePurchasePrice(meta.price, "classic", hasClassic, hasLiquid), user.discount);
-  const liquidPay = applyDiscount(themePurchasePrice(meta.price, "liquid", hasClassic, hasLiquid), user.discount);
-  const classicFull = shopDisplayPrice(meta.price, user.discount);
+  const classicPay = economyShopPriceScaled(
+    themePurchasePrice(meta.price, "classic", hasClassic, hasLiquid),
+    `rot-theme-${themeId}-classic`,
+    user.discount,
+  );
+  const liquidPay = economyShopPriceScaled(
+    themePurchasePrice(meta.price, "liquid", hasClassic, hasLiquid),
+    `rot-theme-${themeId}-liquid`,
+    user.discount,
+  );
 
   return (
     <Modal open={open} title={`Buy ${meta.name}`} onClose={onClose}>
@@ -41,7 +49,10 @@ export function RotatingThemeBuyModal({ open, themeId, user, onClose, onBuy }: P
         </div>
       )}
       {!hasClassic && !hasLiquid && (
-        <small className="soft">Normal from {classicFull.toLocaleString()} · Liquid {applyDiscount(themeLiquidPrice(meta.price), user.discount).toLocaleString()}</small>
+        <small className="soft">
+          Normal from {economyShopPrice(meta.price, `rot-theme-${themeId}`, user.discount).toLocaleString()} · Liquid{" "}
+          {economyShopPriceScaled(themePurchasePrice(meta.price, "liquid", false, false), `rot-theme-${themeId}-liquid`, user.discount).toLocaleString()}
+        </small>
       )}
       <PressableButton variant="ghost" onClick={onClose}>
         Cancel

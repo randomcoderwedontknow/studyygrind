@@ -1,6 +1,6 @@
 export const STORE_KEY = "studygrind_v2";
-export const DATA_VERSION = 13;
-export const APP_RELEASE_VERSION = "12.2.9";
+export const DATA_VERSION = 14;
+export const APP_RELEASE_VERSION = "12.3.0";
 /** When false, beta entry UI is hidden and store beta flag is forced off on migrate. */
 export const BETA_PROGRAM_PUBLIC = false;
 /** Multiplier applied to shop/theme/unlock base prices (12.2.6 economy). */
@@ -24,6 +24,7 @@ export const POINTS_PER_FOCUS_SECOND = 1;
 export const MENTOR_HUB_PRICE = 25_000;
 export const CUSTOM_TITLE_UNLOCK_PRICE = 75_000;
 export const FOCUS_LAB_PRICE = 50_000;
+export const PRESET_LAB_PRICE = 50_000;
 export const COLOUR_MAKER_PRICE = 40_000;
 export const MEMORY_SPRINT_ID = "memory-sprint";
 export const LOGIC_BURST_ID = "logic-burst";
@@ -36,5 +37,6 @@ export const UNLOCK_IDS = {
   mentorHub: "mentor-hub",
   customName: "custom-name",
   focusLab: "focus-lab",
+  presetLab: "preset-lab",
   colourMaker: "colour-maker",
 } as const;

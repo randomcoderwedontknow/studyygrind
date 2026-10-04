@@ -7,8 +7,14 @@ import { PressableButton } from "../components/ui/PressableButton";
 import { Modal } from "../components/ui/Modal";
 import { EmptyState } from "../components/ui/EmptyState";
 import { HorizontalTabBar } from "../components/ui/HorizontalTabBar";
-import { dayDiff } from "../lib/dates";
-import type { Exam, Task, TaskPriority, TaskStatus } from "../types";
+import type { Task, TaskPriority, TaskRecurrence, TaskStatus } from "../types";
+import { todayKey } from "../lib/dates";
+import {
+  isRecurrenceComplete,
+  isRecurringTask,
+  nextIncompleteOccurrence,
+  recurrenceProgressLabel,
+} from "../lib/task-recurrence";
 import { NumericInput } from "../components/ui/NumericInput";
 
 const PR: Record<TaskPriority, number> = { High: 0, Medium: 1, Low: 2 };
@@ -21,11 +27,12 @@ export function TasksPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [mobileCol, setMobileCol] = useState<TaskStatus>("todo");
   const [modalOpen, setModalOpen] = useState(false);
-  const [examModalOpen, setExamModalOpen] = useState(false);
-  const [editingExamId, setEditingExamId] = useState("");
-  const [deleteExamId, setDeleteExamId] = useState("");
-  const [examDraft, setExamDraft] = useState({ title: "", subject: "", examDate: "", targetMinutesPerDay: 45 });
   const [editingId, setEditingId] = useState("");
+  const [recurringOn, setRecurringOn] = useState(false);
+  const [recurrenceKind, setRecurrenceKind] = useState<"daily" | "dates">("dates");
+  const [recurrenceDates, setRecurrenceDates] = useState<string[]>([]);
+  const [recurrenceUntil, setRecurrenceUntil] = useState("");
+  const [dateDraft, setDateDraft] = useState("");
   const [input, setInput] = useState({
     title: "",
     tag: "General",
@@ -58,79 +65,33 @@ export function TasksPage() {
       .filter((t) => t.status === s)
       .sort((a, b) => (PR[a.priority] ?? 1) - (PR[b.priority] ?? 1));
 
-  const examStatusLabel = (date: string) => {
-    const passed = dayDiff(date) > 0;
-    if (passed) return "Due passed";
-    const days = Math.max(0, -dayDiff(date));
-    if (days === 0) return "Today";
-    return `${days} day${days === 1 ? "" : "s"} left`;
-  };
-
-  const openExamModal = (exam?: Exam) => {
-    if (exam) {
-      setEditingExamId(exam.id);
-      setExamDraft({
-        title: exam.title,
-        subject: exam.subject ?? "",
-        examDate: exam.examDate,
-        targetMinutesPerDay: exam.targetMinutesPerDay ?? 45,
-      });
-    } else {
-      setEditingExamId("");
-      setExamDraft({ title: "", subject: "", examDate: "", targetMinutesPerDay: 45 });
+  const loadRecurrenceFromTask = (t?: Task) => {
+    const r = t?.recurrence;
+    if (!r || r.kind === "none") {
+      setRecurringOn(false);
+      setRecurrenceKind("dates");
+      setRecurrenceDates([]);
+      setRecurrenceUntil("");
+      return;
     }
-    setExamModalOpen(true);
-  };
-
-  const saveExam = () => {
-    if (!examDraft.title.trim() || !examDraft.examDate) return;
-    if (editingExamId) {
-      updateUser({
-        ...user,
-        exams: user.exams.map((e) =>
-          e.id === editingExamId
-            ? {
-                ...e,
-                title: examDraft.title.trim(),
-                subject: examDraft.subject.trim() || undefined,
-                examDate: examDraft.examDate,
-                targetMinutesPerDay: examDraft.targetMinutesPerDay,
-              }
-            : e,
-        ),
-      });
-      setToast("Exam updated.");
+    setRecurringOn(true);
+    if (r.kind === "daily") {
+      setRecurrenceKind("daily");
+      setRecurrenceUntil(r.until ?? "");
+      setRecurrenceDates([]);
     } else {
-      const exam: Exam = {
-        id: crypto.randomUUID(),
-        title: examDraft.title.trim(),
-        subject: examDraft.subject.trim() || undefined,
-        examDate: examDraft.examDate,
-        targetMinutesPerDay: examDraft.targetMinutesPerDay,
-      };
-      updateUser({ ...user, exams: [...(user.exams ?? []), exam] });
-      setToast("Exam added.");
+      setRecurrenceKind("dates");
+      setRecurrenceDates(r.dates ?? []);
+      setRecurrenceUntil("");
     }
-    setExamModalOpen(false);
-    setEditingExamId("");
-    setExamDraft({ title: "", subject: "", examDate: "", targetMinutesPerDay: 45 });
   };
 
-  const deleteExam = (id: string) => {
-    updateUser({
-      ...user,
-      exams: user.exams.filter((e) => e.id !== id),
-      selectedExamId: user.selectedExamId === id ? "" : user.selectedExamId,
-      decks: user.decks.map((d) => (d.linkedExamId === id ? { ...d, linkedExamId: undefined } : d)),
-    });
-    setDeleteExamId("");
-    setToast("Exam removed.");
-  };
-
-  const studyForExam = (exam: Exam) => {
-    setSelectedTaskId("");
-    updateUser({ ...user, selectedExamId: exam.id, focusDurationMin: exam.targetMinutesPerDay ?? 45 });
-    goTab("timer");
+  const buildRecurrence = (): TaskRecurrence => {
+    if (!recurringOn) return { kind: "none" };
+    if (recurrenceKind === "daily") {
+      return { kind: "daily", startDate: todayKey(), until: recurrenceUntil || undefined };
+    }
+    return { kind: "dates", dates: [...recurrenceDates].sort() };
   };
 
   const openNew = () => {
@@ -145,12 +106,33 @@ export function TasksPage() {
       dueDate: "",
       status: "todo",
     });
+    loadRecurrenceFromTask();
     setModalOpen(true);
+  };
+
+  const markOccurrenceDone = (task: Task, day: string) => {
+    const done = new Set(task.completedOccurrenceDates ?? []);
+    done.add(day);
+    updateUser({
+      ...user,
+      tasks: user.tasks.map((t) =>
+        t.id === task.id ? { ...t, completedOccurrenceDates: Array.from(done).sort() } : t,
+      ),
+    });
+    setToast(`Marked ${day} complete.`);
   };
 
   const saveTask = () => {
     if (!input.title.trim()) return;
+    if (recurringOn && recurrenceKind === "dates" && recurrenceDates.length === 0) {
+      setToast("Add at least one date for a recurring task.");
+      return;
+    }
     const due = input.dueDate || undefined;
+    const recurrence = buildRecurrence();
+    const prev = editingId ? user.tasks.find((t) => t.id === editingId) : undefined;
+    const scheduleChanged =
+      JSON.stringify(prev?.recurrence) !== JSON.stringify(recurrence);
     if (editingId) {
       updateUser({
         ...user,
@@ -167,6 +149,9 @@ export function TasksPage() {
                 dueDate: due,
                 status: input.status,
                 done: input.status === "done",
+                recurrence,
+                recurrenceStartDate: recurrence.kind === "daily" ? todayKey() : t.recurrenceStartDate,
+                completedOccurrenceDates: scheduleChanged ? [] : t.completedOccurrenceDates ?? [],
               }
             : t,
         ),
@@ -189,6 +174,9 @@ export function TasksPage() {
             dueDate: due,
             focusMinutesSpent: 0,
             pointsReward: 50,
+            recurrence,
+            recurrenceStartDate: recurrence.kind === "daily" ? todayKey() : undefined,
+            completedOccurrenceDates: [],
           },
         ],
       });
@@ -198,6 +186,10 @@ export function TasksPage() {
   };
 
   const moveStatus = (task: Task, status: TaskStatus) => {
+    if (status === "done" && isRecurringTask(task) && !isRecurrenceComplete(task)) {
+      setToast("Finish all scheduled days first (use Done for this day).");
+      return;
+    }
     const wasDone = task.status === "done";
     const nowDone = status === "done";
     let focusPoints = user.focusPoints;
@@ -229,8 +221,14 @@ export function TasksPage() {
         <p className="soft">
           {t.category}
           {t.dueDate ? ` · due ${t.dueDate}` : ""} · {t.focusMinutesSpent}m focused
+          {recurrenceProgressLabel(t) ? ` · ${recurrenceProgressLabel(t)}` : ""}
         </p>
         <div className="row wrap task-actions">
+          {isRecurringTask(t) && t.status !== "done" && nextIncompleteOccurrence(t) && (
+            <PressableButton variant="ghost" onClick={() => markOccurrenceDone(t, nextIncompleteOccurrence(t)!)}>
+              Done for {nextIncompleteOccurrence(t)}
+            </PressableButton>
+          )}
           {t.status !== "done" && (
             <PressableButton
               variant="ghost"
@@ -269,6 +267,7 @@ export function TasksPage() {
                 dueDate: t.dueDate ?? "",
                 status: t.status,
               });
+              loadRecurrenceFromTask(t);
               setModalOpen(true);
             }}
           >
@@ -300,8 +299,8 @@ export function TasksPage() {
             <CheckSquare size={16} /> Tasks
           </h4>
           <div className="row wrap">
-            <PressableButton variant="ghost" onClick={() => openExamModal()}>
-              <CalendarClock size={16} /> Add exam
+            <PressableButton variant="ghost" onClick={() => goTab("exams")}>
+              <CalendarClock size={16} /> Exams
             </PressableButton>
             {!isAndroid && (
               <PressableButton onClick={openNew}>
@@ -323,49 +322,6 @@ export function TasksPage() {
           />
         )}
       </section>
-
-      {(user.exams ?? []).length > 0 && (
-        <section className="card liquid-surface">
-          <h4>
-            <CalendarClock size={16} /> Exams
-          </h4>
-          <div className="grid2">
-            {(user.exams ?? [])
-              .filter((e) => !e.archived)
-              .map((exam) => {
-                const linkedDecks = user.decks.filter((d) => d.linkedExamId === exam.id);
-                return (
-                  <article key={exam.id} className="task-card">
-                    <div className="row wrap">
-                      <b>{exam.title}</b>
-                      <span className="pill">{examStatusLabel(exam.examDate)}</span>
-                    </div>
-                    <p className="soft">
-                      {exam.subject ? `${exam.subject} · ` : ""}
-                      {exam.examDate}
-                      {exam.readinessRating ? ` · Readiness ${exam.readinessRating}/5` : ""}
-                    </p>
-                    <small className="soft">
-                      Aim {exam.targetMinutesPerDay ?? 45}m/day
-                      {linkedDecks.length ? ` · ${linkedDecks.length} linked deck${linkedDecks.length === 1 ? "" : "s"}` : ""}
-                    </small>
-                    <div className="row wrap" style={{ marginTop: 8 }}>
-                      <PressableButton onClick={() => studyForExam(exam)}>
-                        <Play size={14} /> Study for exam
-                      </PressableButton>
-                      <PressableButton variant="ghost" onClick={() => openExamModal(exam)}>
-                        <Pencil size={14} /> Edit
-                      </PressableButton>
-                      <PressableButton variant="ghost" onClick={() => setDeleteExamId(exam.id)}>
-                        Delete
-                      </PressableButton>
-                    </div>
-                  </article>
-                );
-              })}
-          </div>
-        </section>
-      )}
 
       {user.tasks.length === 0 ? (
         <EmptyState
@@ -403,36 +359,6 @@ export function TasksPage() {
         </button>
       )}
 
-      <Modal
-        open={Boolean(deleteExamId)}
-        title="Delete exam?"
-        onClose={() => setDeleteExamId("")}
-        footer={
-          <PressableButton onClick={() => deleteExam(deleteExamId)}>Delete</PressableButton>
-        }
-      >
-        <p className="soft">This removes the exam and unlinks any flashcard decks.</p>
-      </Modal>
-
-      <Modal
-        open={examModalOpen}
-        title={editingExamId ? "Edit exam" : "Add exam"}
-        onClose={() => setExamModalOpen(false)}
-        footer={<PressableButton onClick={saveExam}>Save exam</PressableButton>}
-      >
-        <input placeholder="Exam name" value={examDraft.title} onChange={(e) => setExamDraft({ ...examDraft, title: e.target.value })} />
-        <input placeholder="Subject (optional)" value={examDraft.subject} onChange={(e) => setExamDraft({ ...examDraft, subject: e.target.value })} />
-        <input type="date" value={examDraft.examDate} onChange={(e) => setExamDraft({ ...examDraft, examDate: e.target.value })} aria-label="Exam date" />
-        <NumericInput
-          min={15}
-          max={180}
-          fallback={45}
-          value={examDraft.targetMinutesPerDay}
-          onChange={(n) => setExamDraft({ ...examDraft, targetMinutesPerDay: n })}
-          aria-label="Target minutes per day"
-        />
-      </Modal>
-
       <Modal open={modalOpen} title={editingId ? "Edit task" : "New task"} onClose={() => setModalOpen(false)} footer={<PressableButton onClick={saveTask}>Save</PressableButton>}>
         <input placeholder="Title" value={input.title} onChange={(e) => setInput({ ...input, title: e.target.value })} autoFocus />
         <input placeholder="Category (e.g. Maths)" value={input.category} onChange={(e) => setInput({ ...input, category: e.target.value, tag: e.target.value })} />
@@ -463,6 +389,53 @@ export function TasksPage() {
               onChange={(n) => setInput({ ...input, minutes: n })}
             />
           </div>
+        </div>
+        <div className="task-recurrence-block">
+          <PressableButton variant="ghost" onClick={() => setRecurringOn((v) => !v)}>
+            {recurringOn ? "Recurring task on" : "Recurring task"}
+          </PressableButton>
+          {recurringOn && (
+            <>
+              <div className="chip-group" style={{ marginTop: 8 }}>
+                <button type="button" className={`chip ${recurrenceKind === "daily" ? "chip-active" : ""}`} onClick={() => setRecurrenceKind("daily")}>
+                  Every day
+                </button>
+                <button type="button" className={`chip ${recurrenceKind === "dates" ? "chip-active" : ""}`} onClick={() => setRecurrenceKind("dates")}>
+                  Pick dates
+                </button>
+              </div>
+              {recurrenceKind === "daily" && (
+                <label className="field">
+                  <span className="soft">End date (required to finish series)</span>
+                  <input type="date" value={recurrenceUntil} onChange={(e) => setRecurrenceUntil(e.target.value)} />
+                </label>
+              )}
+              {recurrenceKind === "dates" && (
+                <div>
+                  <div className="row wrap">
+                    <input type="date" value={dateDraft} onChange={(e) => setDateDraft(e.target.value)} aria-label="Add recurrence date" />
+                    <PressableButton
+                      variant="ghost"
+                      onClick={() => {
+                        if (!dateDraft) return;
+                        if (!recurrenceDates.includes(dateDraft)) setRecurrenceDates([...recurrenceDates, dateDraft].sort());
+                        setDateDraft("");
+                      }}
+                    >
+                      Add date
+                    </PressableButton>
+                  </div>
+                  <div className="chip-group" style={{ marginTop: 8 }}>
+                    {recurrenceDates.map((d) => (
+                      <button key={d} type="button" className="chip chip-active" onClick={() => setRecurrenceDates(recurrenceDates.filter((x) => x !== d))}>
+                        {d} ×
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </Modal>
     </PageTransition>

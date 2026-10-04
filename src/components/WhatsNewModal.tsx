@@ -4,10 +4,11 @@ import { Modal } from "./ui/Modal";
 import { PressableButton } from "./ui/PressableButton";
 
 const BULLETS = [
-  "Preset Lab is in the main app — save and apply full timer setups from the menu or timer",
-  "Revamped preset editor: soundscapes, volume, end sounds, and focus-lock tabs",
-  "Number fields let you clear and retype (timer durations, goals, tasks, onboarding)",
-  "Beta program paused in this release while we polish Preset Lab",
+  "Beta access cleared on update; Preset Lab unlocks in the shop (~50k focus points)",
+  "Daily shop economy — prices shift each day; sell owned items back at today's market price",
+  "Owned tab lists hubs, titles, themes, and unlocks with sell refunds",
+  "New Exams page for countdowns and study targets",
+  "Recurring tasks: every day or pick specific dates, then mark each day done",
 ];
 
 type Props = {
@@ -18,7 +19,7 @@ type Props = {
 export function WhatsNewModal({ open, onClose }: Props) {
   return (
     <Modal open={open} onClose={onClose} title={`What's new in ${APP_RELEASE_VERSION}`}>
-      <p className="soft">StudyGrind {APP_RELEASE_VERSION} — Preset Lab and input fixes.</p>
+      <p className="soft">StudyGrind {APP_RELEASE_VERSION} — economy, exams, and recurring tasks.</p>
       <ul className="soft" style={{ paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
         {BULLETS.map((b) => (
           <li key={b}>{b}</li>

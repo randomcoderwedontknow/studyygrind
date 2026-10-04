@@ -1,6 +1,7 @@
 import type { ThemeId } from "../../types";
 import { themes } from "../../data/themes";
-import { applyDiscount, shopDisplayPrice, themePurchasePrice, themeLiquidPrice } from "../../lib/pricing";
+import { themePurchasePrice, themeLiquidPrice } from "../../lib/pricing";
+import { economyShopPrice, economyShopPriceScaled } from "../../lib/economy-pricing";
 import { ownsThemeClassic, ownsThemeLiquid } from "../../lib/theme-variants";
 import type { UserData } from "../../types";
 import { Modal } from "../ui/Modal";
@@ -20,10 +21,12 @@ export function ThemeBuyModal({ open, themeId, user, onClose, onBuy, canUseCredi
   const meta = themes[themeId];
   const hasClassic = ownsThemeClassic(user, themeId);
   const hasLiquid = ownsThemeLiquid(user, themeId);
-  const classicPay = applyDiscount(themePurchasePrice(meta.price, "classic", hasClassic, hasLiquid), user.discount);
-  const liquidPay = applyDiscount(themePurchasePrice(meta.price, "liquid", hasClassic, hasLiquid), user.discount);
-  const classicFull = shopDisplayPrice(meta.price, user.discount);
-  const liquidFull = applyDiscount(themeLiquidPrice(meta.price), user.discount);
+  const classicRaw = themePurchasePrice(meta.price, "classic", hasClassic, hasLiquid);
+  const liquidRaw = themePurchasePrice(meta.price, "liquid", hasClassic, hasLiquid);
+  const classicPay = economyShopPriceScaled(classicRaw, `theme-${themeId}-classic`, user.discount);
+  const liquidPay = economyShopPriceScaled(liquidRaw, `theme-${themeId}-liquid`, user.discount);
+  const classicFull = economyShopPrice(meta.price, `theme-${themeId}`, user.discount);
+  const liquidFull = economyShopPriceScaled(themeLiquidPrice(meta.price), `theme-${themeId}-liquid`, user.discount);
 
   return (
     <Modal open={open} title={`Buy ${meta.name}`} onClose={onClose}>

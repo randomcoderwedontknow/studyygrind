@@ -3,6 +3,7 @@ import {
   COLOUR_MAKER_PRICE,
   CUSTOM_TITLE_UNLOCK_PRICE,
   FOCUS_LAB_PRICE,
+  PRESET_LAB_PRICE,
   UNLOCK_IDS,
 } from "./constants";
 import { PURCHASABLE_TITLES } from "./titles";
@@ -46,6 +47,14 @@ export const SHOP_HUB_ITEMS: ShopItem[] = [
     price: COLOUR_MAKER_PRICE,
     category: "hubs",
     unlockKey: UNLOCK_IDS.colourMaker,
+  },
+  {
+    id: UNLOCK_IDS.presetLab,
+    name: "Preset Lab",
+    description: "Save and apply full focus timer setups.",
+    price: PRESET_LAB_PRICE,
+    category: "hubs",
+    unlockKey: UNLOCK_IDS.presetLab,
   },
 ];
 

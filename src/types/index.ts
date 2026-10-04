@@ -1,6 +1,7 @@
 export type Tab =
   | "home"
   | "tasks"
+  | "exams"
   | "timer"
   | "cards"
   | "notes"
@@ -50,6 +51,11 @@ export type ThemeSurface = "classic" | "liquid";
 export type TaskStatus = "todo" | "doing" | "done";
 export type TaskPriority = "Low" | "Medium" | "High";
 
+export type TaskRecurrence =
+  | { kind: "none" }
+  | { kind: "daily"; startDate?: string; until?: string }
+  | { kind: "dates"; dates: string[] };
+
 export type Task = {
   id: string;
   title: string;
@@ -63,6 +69,9 @@ export type Task = {
   dueDate?: string;
   focusMinutesSpent: number;
   pointsReward: number;
+  recurrence?: TaskRecurrence;
+  completedOccurrenceDates?: string[];
+  recurrenceStartDate?: string;
 };
 
 export type CardStatus = "new" | "practice" | "known";

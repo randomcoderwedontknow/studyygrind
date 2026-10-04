@@ -122,6 +122,16 @@ function migrateToV13(u: UserData): UserData {
     ...u,
     betaShellActive: false,
     activeRoutine: null,
+    dataVersion: 13,
+  };
+}
+
+function migrateToV14(u: UserData): UserData {
+  return {
+    ...u,
+    betaProgramAccess: false,
+    betaShellActive: false,
+    activeRoutine: null,
     dataVersion: DATA_VERSION,
   };
 }
@@ -175,6 +185,9 @@ function migrateTask(t: Partial<Task> & { done?: boolean }): Task {
     dueDate: t.dueDate || undefined,
     focusMinutesSpent: t.focusMinutesSpent ?? 0,
     pointsReward: t.pointsReward ?? 25,
+    recurrence: t.recurrence ?? { kind: "none" },
+    completedOccurrenceDates: t.completedOccurrenceDates ?? [],
+    recurrenceStartDate: t.recurrenceStartDate,
   };
 }
 
@@ -586,7 +599,7 @@ export function migrateUser(k: string, v: Partial<UserData>): UserData {
     mutedUntil,
     tempBoostMultiplier,
     tempBoostExpires,
-    dataVersion: DATA_VERSION,
+    dataVersion: v.dataVersion ?? 0,
   };
   const questDay = todayKey();
   let merged = baseReturn;
@@ -606,6 +619,9 @@ export function migrateUser(k: string, v: Partial<UserData>): UserData {
   if ((merged.dataVersion ?? 0) < 13) {
     merged = migrateToV13(merged);
   }
+  if ((merged.dataVersion ?? 0) < 14) {
+    merged = migrateToV14(merged);
+  }
   return backfillTrophies(merged);
 }
 
@@ -621,7 +637,6 @@ export function migrateStore(parsed: Partial<AppStore> & { users?: Record<string
       banned: false,
       suspendedUntil: "",
       muted: false,
-      betaProgramAccess: true,
     };
   }
   const announcement =
@@ -661,6 +676,7 @@ export function migrateStore(parsed: Partial<AppStore> & { users?: Record<string
 export const TAB_META: Record<Tab, { label: string; description: string }> = {
   home: { label: "Home", description: "Today's study snapshot and quick links." },
   tasks: { label: "Tasks", description: "Plan, prioritise, and track study tasks." },
+  exams: { label: "Exams", description: "Exam countdown, study targets, and readiness." },
   timer: { label: "Focus Timer", description: "Focus and break sessions that fit your schedule." },
   cards: { label: "Flashcards", description: "Decks and review for memorisation." },
   notes: { label: "Notes", description: "Notes with folders, tags, and search." },

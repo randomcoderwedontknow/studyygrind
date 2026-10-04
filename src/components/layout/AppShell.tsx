@@ -3,6 +3,7 @@ import {
   BarChart3,
   Bell,
   BookOpen,
+  CalendarClock,
   CheckSquare,
   ChevronRight,
   Clock3,
@@ -47,6 +48,7 @@ import { BETA_PROGRAM_PUBLIC } from "../../data/constants";
 const TAB_ICONS: Partial<Record<Tab, React.ReactNode>> = {
   home: <Home size={18} />,
   tasks: <CheckSquare size={18} />,
+  exams: <CalendarClock size={18} />,
   timer: <Clock3 size={18} />,
   cards: <BookOpen size={18} />,
   notes: <NotebookPen size={18} />,
@@ -67,6 +69,7 @@ const TAB_ICONS: Partial<Record<Tab, React.ReactNode>> = {
 const MAIN_TABS: Tab[] = [
   "home",
   "tasks",
+  "exams",
   "timer",
   "focusPresetLab",
   "cards",

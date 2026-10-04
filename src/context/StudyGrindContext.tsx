@@ -22,6 +22,7 @@ import { hapticSuccess, setHapticsEnabled } from "../lib/haptics";
 import { syncWidgetData } from "../lib/widget";
 import { applyAccessibilityToBody, applyThemeSurfaceToBody } from "../lib/accessibility-body";
 import { applyDiscount, scalePrice, themePurchasePrice, shopDisplayPrice } from "../lib/pricing";
+import { economyMarketPrice, economyMarketPriceScaled, economyShopPrice, economyShopPriceScaled } from "../lib/economy-pricing";
 import {
   canEquipThemeSurface,
   effectiveLiquidSurface,
@@ -31,7 +32,11 @@ import {
   ownsRotatingLiquid,
   ownsThemeClassic,
   ownsThemeLiquid,
+  revokeRotatingSurface,
+  revokeThemeSurface,
 } from "../lib/theme-variants";
+import { ALL_SHOP_ITEMS } from "../data/shop-catalog";
+import { PURCHASABLE_TITLES } from "../data/titles";
 import { App as CapApp } from "@capacitor/app";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import {
@@ -61,6 +66,7 @@ import type { CelebrationEvent } from "../components/rewards/CelebrationModal";
 import {
   FOCUS_LAB_PRICE,
   COLOUR_MAKER_PRICE,
+  PRESET_LAB_PRICE,
 } from "../data/constants";
 import { ensureCurrentWeek, getWeekKey } from "../lib/week";
 import { recordDailyActive } from "../lib/combo";
@@ -130,6 +136,10 @@ type Ctx = {
   purchaseShopItem: (unlockKey: string, price: number, name: string) => boolean;
   buyTitle: (titleId: string, price: number) => void;
   buyRotatingTheme: (themeId: string, surface: import("../types").ThemeSurface) => void;
+  sellShopItem: (unlockKey: string) => boolean;
+  sellTitle: (titleId: string) => boolean;
+  sellCustomName: () => boolean;
+  sellThemeSurface: (themeId: string, surface: import("../types").ThemeSurface, rotating?: boolean) => boolean;
   equipTitle: (titleId: string) => void;
   hasUnlock: (key: string) => boolean;
   login: () => Promise<void>;
@@ -649,6 +659,12 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
         if (opts?.closeMenu) setMenuOpen(false);
         return;
       }
+      if (next === "focusPresetLab" && !hasUnlock(UNLOCK_IDS.presetLab)) {
+        setToast(`Unlock Preset Lab in the shop (${economyShopPrice(PRESET_LAB_PRICE, UNLOCK_IDS.presetLab).toLocaleString()} pts).`);
+        setTab("shop");
+        if (opts?.closeMenu) setMenuOpen(false);
+        return;
+      }
       if (next === "ownerSettings" && user?.role !== "owner") {
         setToast("Owner only.");
         if (opts?.closeMenu) setMenuOpen(false);
@@ -823,8 +839,7 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
         setToast("Already unlocked.");
         return false;
       }
-      const scaled = scalePrice(price);
-      const final = applyDiscount(scaled, user.discount);
+      const final = economyShopPrice(price, unlockKey, user.discount);
       const useCredit = (user.trophyShopCredits ?? 0) > 0 && canRedeemTrophyCredit({ price, unlockKey });
       if (!useCredit && user.focusPoints < final) {
         setToast("Not enough focus points.");
@@ -852,6 +867,7 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
       showReward(`${name} unlocked!`, useCredit ? "Used trophy reward credit" : undefined, undefined);
       if (unlockKey === UNLOCK_IDS.focusLab) setToast("Focus Lab unlocked — open it from the menu.");
       else if (unlockKey === UNLOCK_IDS.colourMaker) setToast("Theme Studio unlocked — open it from the menu.");
+      else if (unlockKey === UNLOCK_IDS.presetLab) setToast("Preset Lab unlocked — open it from the menu.");
       else if (useCredit) setToast(`${name} unlocked with a free trophy credit!`);
       else setToast(`${name} unlocked for ${final} pts.`);
       return true;
@@ -865,7 +881,7 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
     const hasClassic = ownsThemeClassic(user, id);
     const hasLiquid = ownsThemeLiquid(user, id);
     const rawPrice = themePurchasePrice(base, surface, hasClassic, hasLiquid);
-    const final = applyDiscount(rawPrice, user.discount);
+    const final = economyShopPriceScaled(rawPrice, `theme-${id}-${surface}`, user.discount);
     const useCredit =
       surface === "classic" && (user.trophyShopCredits ?? 0) > 0 && canRedeemTrophyCreditForTheme(id);
     if (surface === "classic" && ownsThemeClassic(user, id)) return setToast("You already own the normal version.");
@@ -983,7 +999,7 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
     if (surface === "classic" && hasClassic) return setToast("You already own the normal version.");
     if (surface === "liquid" && hasLiquid) return setToast("You already own the liquid version.");
     const rawPrice = themePurchasePrice(meta.price, surface, hasClassic, hasLiquid);
-    const final = applyDiscount(rawPrice, user.discount);
+    const final = economyShopPriceScaled(rawPrice, `rot-theme-${themeId}-${surface}`, user.discount);
     if (user.focusPoints < final) return setToast("Not enough focus points.");
     let rotatingThemeVariantsOwned = grantRotatingSurface(user.rotatingThemeVariantsOwned ?? {}, themeId, surface);
     const ownedRotatingThemeIds = user.ownedRotatingThemeIds.includes(themeId)
@@ -1009,8 +1025,7 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
       setToast("Already owned.");
       return;
     }
-    const scaled = scalePrice(price);
-    const final = applyDiscount(scaled, user.discount);
+    const final = economyShopPrice(price, `title-${titleId}`, user.discount);
     const useCredit = (user.trophyShopCredits ?? 0) > 0 && canRedeemTrophyCreditForTitle(titleId, price);
     if (!useCredit && user.focusPoints < final) return setToast("Not enough points.");
     updateUser({
@@ -1024,6 +1039,148 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
     });
     showReward("Title unlocked & equipped!", useCredit ? "Used trophy reward credit" : undefined);
   };
+
+  const sellShopItem = useCallback(
+    (unlockKey: string): boolean => {
+      if (!user) return false;
+      const item = ALL_SHOP_ITEMS.find((i) => i.unlockKey === unlockKey || i.id === unlockKey);
+      if (!item || item.free || item.ownerOnly) {
+        setToast("Cannot sell this item.");
+        return false;
+      }
+      if (!hasUnlock(unlockKey)) {
+        setToast("You do not own this.");
+        return false;
+      }
+      const refund = economyMarketPrice(item.price, unlockKey);
+      const unlocks = { ...user.unlocks };
+      delete unlocks[unlockKey];
+      let next: UserData = {
+        ...user,
+        focusPoints: user.focusPoints + refund,
+        unlocks,
+      };
+      if (unlockKey === UNLOCK_IDS.customName) {
+        next.customTitleUnlocked = false;
+        next.ownedTitles = next.ownedTitles.filter((t) => t !== CUSTOM_NAME_TITLE_ID);
+        if (next.equippedTitleId === CUSTOM_NAME_TITLE_ID) next.equippedTitleId = STARTER_TITLE.id;
+      }
+      if (unlockKey === UNLOCK_IDS.mentorHub) next.mentorHubUnlocked = false;
+      if (unlockKey.startsWith("game-") || unlockKey === MEMORY_SPRINT_ID) {
+        const gid = unlockKey.startsWith("game-") ? unlockKey.replace("game-", "") : unlockKey;
+        next.gamesUnlocked = next.gamesUnlocked.filter((g) => g !== gid);
+      }
+      const sound = next.timerEndSoundId;
+      if (unlockKey.startsWith("sound-") && sound.includes(unlockKey.replace("sound-", ""))) {
+        next.timerEndSoundId = "default";
+      }
+      updateUser(next);
+      logAction("shop-sell", unlockKey, String(refund));
+      setToast(`Sold for ${refund.toLocaleString()} pts (today's market).`);
+      return true;
+    },
+    [user, hasUnlock, updateUser, logAction, setToast],
+  );
+
+  const sellTitle = useCallback(
+    (titleId: string): boolean => {
+      if (!user) return false;
+      const meta = PURCHASABLE_TITLES.find((t) => t.id === titleId);
+      if (!meta) {
+        setToast("Cannot sell this title.");
+        return false;
+      }
+      const key = `title-${titleId}`;
+      if (!user.ownedTitles.includes(titleId) && !hasUnlock(key)) {
+        setToast("You do not own this title.");
+        return false;
+      }
+      const refund = economyMarketPrice(meta.price, key);
+      const unlocks = { ...user.unlocks };
+      delete unlocks[key];
+      let next: UserData = {
+        ...user,
+        focusPoints: user.focusPoints + refund,
+        ownedTitles: user.ownedTitles.filter((t) => t !== titleId),
+        unlocks,
+      };
+      if (next.equippedTitleId === titleId) next.equippedTitleId = STARTER_TITLE.id;
+      updateUser(next);
+      logAction("shop-sell", key, String(refund));
+      setToast(`Sold "${meta.label}" for ${refund.toLocaleString()} pts.`);
+      return true;
+    },
+    [user, hasUnlock, updateUser, logAction, setToast],
+  );
+
+  const sellCustomName = useCallback((): boolean => {
+    if (!user) return false;
+    if (!hasUnlock(UNLOCK_IDS.customName) && !user.customTitleUnlocked) {
+      setToast("You do not own Custom Name.");
+      return false;
+    }
+    return sellShopItem(UNLOCK_IDS.customName);
+  }, [user, hasUnlock, sellShopItem, setToast]);
+
+  const sellThemeSurface = useCallback(
+    (themeId: string, surface: import("../types").ThemeSurface, rotating = false): boolean => {
+      if (!user) return false;
+      if (themeId === "green") {
+        setToast("Cannot sell the default theme.");
+        return false;
+      }
+      const base = rotating ? rotatingThemeById(themeId)?.price ?? 0 : themes[themeId as ThemeId]?.price ?? 0;
+      if (base <= 0) {
+        setToast("Cannot sell this theme.");
+        return false;
+      }
+      const hasClassic = rotating ? ownsRotatingClassic(user, themeId) : ownsThemeClassic(user, themeId as ThemeId);
+      const hasLiquid = rotating ? ownsRotatingLiquid(user, themeId) : ownsThemeLiquid(user, themeId as ThemeId);
+      if (surface === "classic" && !hasClassic) {
+        setToast("You do not own this variant.");
+        return false;
+      }
+      if (surface === "liquid" && !hasLiquid) {
+        setToast("You do not own this variant.");
+        return false;
+      }
+      const rawPrice = themePurchasePrice(base, surface, hasClassic, hasLiquid);
+      const itemKey = rotating ? `rot-theme-${themeId}-${surface}` : `theme-${themeId}-${surface}`;
+      const refund = economyMarketPriceScaled(rawPrice, itemKey);
+      let next: UserData = { ...user, focusPoints: user.focusPoints + refund };
+      if (rotating) {
+        next.rotatingThemeVariantsOwned = revokeRotatingSurface(user.rotatingThemeVariantsOwned ?? {}, themeId, surface);
+        const v = next.rotatingThemeVariantsOwned[themeId];
+        if (!v?.classic && !v?.liquid) {
+          next.ownedRotatingThemeIds = next.ownedRotatingThemeIds.filter((id) => id !== themeId);
+        }
+      } else {
+        const tid = themeId as ThemeId;
+        next.themeVariantsOwned = revokeThemeSurface(user.themeVariantsOwned ?? {}, tid, surface);
+        const v = next.themeVariantsOwned[tid];
+        if (!v?.classic && !v?.liquid) {
+          next.ownedThemes = next.ownedThemes.filter((id) => id !== tid);
+        }
+      }
+      if (next.equippedTheme === themeId) {
+        const stillClassic = rotating ? ownsRotatingClassic(next, themeId) : ownsThemeClassic(next, themeId as ThemeId);
+        const stillLiquid = rotating ? ownsRotatingLiquid(next, themeId) : ownsThemeLiquid(next, themeId as ThemeId);
+        if (!stillClassic && !stillLiquid) {
+          next.equippedTheme = "green";
+          next.equippedThemeSurface = "classic";
+        } else if (next.equippedThemeSurface === "liquid" && !stillLiquid) {
+          next.equippedThemeSurface = "classic";
+        } else if (next.equippedThemeSurface !== "liquid" && !stillClassic && stillLiquid) {
+          next.equippedThemeSurface = "liquid";
+        }
+      }
+      updateUser(next);
+      logAction("shop-sell", itemKey, String(refund));
+      setToast(`Sold for ${refund.toLocaleString()} pts (today's market).`);
+      return true;
+    },
+    [user, updateUser, logAction, setToast],
+  );
 
   const equipTitle = (titleId: string) => {
     if (!user) return;
@@ -1041,7 +1198,10 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
     setToast(`Theme equipped (${nextSurface === "liquid" ? "Liquid" : "Normal"}).`);
   };
 
-  const maxFocusProfiles = () => (hasUnlock("qol-extra-preset") ? 5 : 4);
+  const maxFocusProfiles = () => {
+    if (!hasUnlock(UNLOCK_IDS.presetLab)) return 1;
+    return hasUnlock("qol-extra-preset") ? 5 : 4;
+  };
 
   const applyFocusProfile = (profileId: string) => {
     if (!user) return;
@@ -1064,6 +1224,10 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
 
   const saveFocusProfile = (name?: string): boolean => {
     if (!user) return false;
+    if (!hasUnlock(UNLOCK_IDS.presetLab)) {
+      setToast("Unlock Preset Lab in the shop first.");
+      return false;
+    }
     const cap = maxFocusProfiles();
     const profileName = (name || `Preset ${user.focusProfiles.length + 1}`).trim().slice(0, 24);
     const snapshot: FocusProfile = {
@@ -1106,6 +1270,10 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
 
   const upsertFocusProfile = (profile: FocusProfile): boolean => {
     if (!user) return false;
+    if (!hasUnlock(UNLOCK_IDS.presetLab)) {
+      setToast("Unlock Preset Lab in the shop first.");
+      return false;
+    }
     const cap = maxFocusProfiles();
     const exists = user.focusProfiles.some((p) => p.id === profile.id);
     let profiles = user.focusProfiles;
@@ -1544,6 +1712,10 @@ export function StudyGrindProvider({ children }: { children: ReactNode }) {
     purchaseShopItem,
     buyTitle,
     buyRotatingTheme,
+    sellShopItem,
+    sellTitle,
+    sellCustomName,
+    sellThemeSurface,
     equipTitle,
     equipTheme,
     hasUnlock,
