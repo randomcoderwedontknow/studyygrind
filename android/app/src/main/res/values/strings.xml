@@ -20,4 +20,7 @@
     <string name="widget_description_streak">Study streak at a glance.</string>
     <string name="widget_description_task">Your next open task.</string>
     <string name="widget_description_quick">Start focus or see the running timer.</string>
+
+    <!-- 12.3.0 — Play Store / about (see also release_notes_12_3.xml) -->
+    <string name="app_version_label">Version 12.3.0 (12300)</string>
 </resources>

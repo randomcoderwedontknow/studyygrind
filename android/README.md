@@ -1,6 +1,14 @@
 # StudyGrind — Android (Capacitor)
 
+**Current release:** **12.3.0** (`versionCode` **12300**). Full notes: [RELEASE_NOTES_12.3.0.md](./RELEASE_NOTES_12.3.0.md).
+
 This directory is the **Gradle project** you open in Android Studio. The UI is a **web app** built at the **repository root** (`../`), then copied here by Capacitor.
+
+## 12.3.0 on Android (same as web)
+
+All 12.3 features run inside the WebView: **daily shop economy**, **sell-back** (Shop → Owned), **Exams** (drawer / More menu), **recurring tasks**, **Preset Lab** shop unlock, **beta cleared on update** (migration v14). In-app **What's New** appears after update.
+
+**Session keep-alive:** `MainActivity` pauses/resumes the WebView and avoids state-save reloads so switching apps for **~30 minutes** should not cold-refresh the UI (if Android keeps the process alive).
 
 ## Portable Gradle project (standalone `android/` folder)
 

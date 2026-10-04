@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="release_version_name">12.3.0</string>
+    <string name="release_version_code">12300</string>
+    <string name="whats_new_12_3_title">What\'s new in StudyGrind 12.3.0</string>
+    <string name="whats_new_12_3_summary">Economy shop, sell-back, Exams page, recurring tasks, Preset Lab in shop, beta cleared on update.</string>
+    <string name="release_notes_background_grace">When you switch apps, StudyGrind keeps your session for about 30 minutes without reloading the app.</string>
+
+    <string-array name="whats_new_12_3_bullets">
+        <item>Beta access removed for all users on update (including owner)</item>
+        <item>Preset Lab unlock in Shop (~50k pts) — save and apply full timer setups</item>
+        <item>Daily economy: prices change each day within safe floors and ceilings</item>
+        <item>Sell titles, themes, hubs, and unlocks from Shop → Owned at today\'s price</item>
+        <item>Owned tab shows all purchases, not just themes</item>
+        <item>New Exams page — countdown, targets, study linked to timer</item>
+        <item>Recurring tasks — every day or pick dates; mark each day done</item>
+        <item>Number fields: backspace and retype while editing</item>
+        <item>Android: smoother return from other apps for ~30 minutes (no full refresh)</item>
+    </string-array>
+</resources>
